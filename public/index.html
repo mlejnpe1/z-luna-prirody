@@ -29,9 +29,38 @@
   <section class="section fragrance"><div><p class="eyebrow">JAK VONÍ VAŠE CHVÍLE KLIDU?</p><h2>Každá vůně má<br>svůj <em>charakter.</em></h2></div><div><p>U vybraných produktů se můžete domluvit na vůni. V nabídce najdete tyto esence:</p><div class="scents"><span>Levandule</span><span>Růžový grapefruit</span><span>Citronová tráva</span><span>Eukalyptus</span><span>Tea tree</span><span>Pomeranč</span></div><p class="small">Možnosti pro konkrétní produkt potvrdí autorka.</p></div></section>
   <section class="contact" id="kontakt"><div class="section"><p class="eyebrow">POJĎME SE DOMLUVIT</p><h2>Něco vás <em>zaujalo?</em></h2><p id="contact-lead">Rádi vám pomůžeme s výběrem a dostupností produktů.</p><div id="contact-details"><a class="text-link" href="mailto:z.luna.prirody@seznam.cz">z.luna.prirody@seznam.cz</a><a class="text-link" href="https://www.instagram.com/z_luna_prirody/" target="_blank" rel="noopener noreferrer">Instagram ↗</a></div></div></section>
 </main>
-<footer class="section"><a class="brand" href="#domu"><span class="brand-icon" aria-hidden="true">❧</span><span>Z lůna přírody<small>BYLINNÉ MASTI & KOSMETIKA</small></span></a><p>© 2026 Z lůna přírody</p></footer>
-<dialog id="product-dialog" aria-labelledby="detail-title"><button class="close" aria-label="Zavřít detail" data-close="product-dialog">×</button><div id="product-detail"></div></dialog>
+<footer class="section"><a class="brand" href="#domu"><span class="brand-icon" aria-hidden="true">❧</span><span>Z lůna přírody<small>BYLINNÉ MASTI & KOSMETIKA</small></span></a><div class="footer-credits"><p>© 2026 Z lůna přírody</p><p class="web-credit">Webdesign, realizace a správa webu: Petr Mlejnek, Kontakt: <a href="mailto:mlejnek.petr.ml@gmail.com">mlejnek.petr.ml@gmail.com</a></p></div></footer>
+<dialog id="inquiry-dialog" aria-labelledby="inquiry-title" aria-describedby="inquiry-intro">
+  <button class="close" type="button" aria-label="Zavřít poptávku" data-close="inquiry-dialog">×</button>
+  <p class="eyebrow">POJĎME SE DOMLUVIT</p>
+  <h2 id="inquiry-title">Kousek přírody <em>pro vás.</em></h2>
+  <p id="inquiry-intro">Ukázka nezávazné poptávky. Vyzkoušejte formulář s testovacími údaji; e-mail se neodesílá.</p>
+  <p id="inquiry-product" class="inquiry-product"></p>
+  <div id="inquiry-fields">
+    <form id="inquiry-form" method="dialog">
+      <div class="form-row">
+        <label for="first-name">Jméno <span class="field-hint" aria-hidden="true">*</span><input id="first-name" type="text" autocomplete="given-name" maxlength="80" required></label>
+        <label for="last-name">Příjmení<input id="last-name" type="text" autocomplete="family-name" maxlength="80"></label>
+      </div>
+      <label for="reply-email">E-mail pro odpověď <span class="field-hint" aria-hidden="true">*</span><input id="reply-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="reply-email-help"></label>
+      <p id="reply-email-help" class="form-help">Pro vyzkoušení můžete použít například test@example.com.</p>
+      <p id="inquiry-error" class="form-error" role="alert"></p>
+      <button class="button" type="submit">Zobrazit náhled poptávky <span aria-hidden="true">→</span></button>
+      <p class="form-help send-help">Tímto krokem nic neodesíláte ani závazně neobjednáváte.</p>
+    </form>
+  </div>
+  <section id="inquiry-preview" hidden aria-labelledby="preview-title">
+    <h3 id="preview-title" tabindex="-1">Náhled nezávazné poptávky</h3>
+    <p class="form-help">Takto může vypadat vaše poptávka. Tato ukázka e-mail neodesílá ani neotevírá poštovní aplikaci.</p>
+    <dl class="email-summary"><dt>Komu</dt><dd id="email-recipient"></dd><dt>Předmět</dt><dd id="email-subject"></dd></dl>
+    <label for="email-body">Text připravené zprávy</label>
+    <textarea id="email-body" readonly rows="10" spellcheck="false"></textarea>
+    <div class="inquiry-actions"><button type="button" class="button secondary" id="edit-inquiry">Upravit údaje</button><button type="button" class="text-button" data-close="inquiry-dialog">Zavřít náhled</button></div>
+  </section>
+</dialog>
 <script src="site-config.js"></script>
 <script src="products.js"></script>
+<script src="catalog.js"></script>
+<script src="inquiry.js"></script>
 <script src="app.js"></script>
 </body></html>

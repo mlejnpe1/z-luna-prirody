@@ -1,7 +1,14 @@
 .git/
+.private/
 node_modules/
 .env
 .env.*
 *.log
 README.txt
-scripts/
+FOTOGRAFIE.txt
+PRIVACY-RELEASE.txt
+dist/
+scripts/check-*.cjs
+scripts/preview.cjs
+scripts/export-icons.ps1
+scripts/social-card.html

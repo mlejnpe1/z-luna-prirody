@@ -1,37 +1,84 @@
 'use strict';
-const artMap = {
-  lavender: ['3.png', '890 80 390 590'], rosemary: ['4.png', '130 510 1070 200'],
-  calendula: ['5.png', '790 100 490 520'], zinc: ['6.png', '790 150 510 460'],
-  lips: ['8.png', '870 160 430 450'], oil: ['9.png', '950 130 290 510'],
-  butter: ['10.png', '780 170 510 450'], nails: ['11.png', '850 175 420 400']
-};
-const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const currency = value => new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(value);
+const { price: currency } = Catalog;
 const email = typeof siteConfig.email === 'string' && /^[^\s@?&#]+@[^\s@?&#]+\.[^\s@?&#]+$/.test(siteConfig.email.trim()) ? siteConfig.email.trim() : '';
 let category = 'all';
-
-function art(product) {
-  const [file, box] = artMap[product.art] || artMap.lavender;
-  return `<div class="product-art"><span class="volume">${esc(product.volume)}</span><svg viewBox="${box}" aria-hidden="true"><image href="assets/${file}" width="1366" height="768"/></svg></div>`;
-}
+let inquiryTrigger = null;
+let inquiryProduct = null;
+const inquiryDialog = document.getElementById('inquiry-dialog');
+const inquiryForm = document.getElementById('inquiry-form');
+const inquiryFields = ['first-name', 'last-name', 'reply-email'].map(id => document.getElementById(id));
 
 function render() {
+  const grid = document.getElementById('product-grid');
+  if (!grid) return;
   const visible = products.filter(p => p.published && (category === 'all' || p.category === category));
   document.getElementById('product-count').textContent = `Počet produktů: ${visible.length}`;
-  document.getElementById('product-grid').innerHTML = visible.map(p => `<article class="product-card"><button class="product-art-button" data-detail="${esc(p.id)}" aria-label="Zobrazit ${esc(p.name)}">${art(p)}</button><span class="card-category">${esc(p.category)}</span><h3>${esc(p.name)}</h3><div class="card-bottom"><span>${currency(p.price)}</span><button class="details-link" data-detail="${esc(p.id)}">Prohlédnout ↗</button></div></article>`).join('') || '<p class="empty">V této kategorii zatím nejsou žádné produkty.</p>';
+  grid.innerHTML = visible.map(Catalog.card).join('') || '<p class="empty">V této kategorii zatím nejsou žádné produkty.</p>';
 }
 
-function showDetail(id) {
-  const product = products.find(p => p.id === id && p.published);
-  if (!product) return;
-  const inquiry = email ? '<a class="button" id="product-inquiry">Napsat o produktu ↗</a>' : '';
-  document.getElementById('product-detail').innerHTML = `<div class="detail-layout">${art(product)}<div><span class="card-category">${esc(product.category)} · ${esc(product.volume)}</span><h2 id="detail-title">${esc(product.name)}</h2><p class="detail-price">${currency(product.price)}</p><p>${esc(product.description)}</p><h3>Složení</h3><p>${esc(product.ingredients)}</p><p class="small">Ilustrační vyobrazení.</p>${inquiry}</div></div>`;
-  if (email) document.getElementById('product-inquiry').href = `mailto:${email}?subject=${encodeURIComponent('Zájem o produkt: ' + product.name)}&body=${encodeURIComponent('Dobrý den, mám zájem o ' + product.name + ' (' + product.volume + '). Prosím o informaci o dostupnosti. Děkuji.')}`;
-  document.getElementById('product-dialog').showModal();
+function clearInquiry() {
+  inquiryForm.reset();
+  inquiryFields.forEach(field => { field.value = ''; field.setCustomValidity(''); });
+  document.getElementById('inquiry-preview').hidden = true;
+  document.getElementById('inquiry-fields').hidden = false;
+  document.getElementById('email-subject').textContent = '';
+  document.getElementById('email-body').value = '';
+  document.getElementById('inquiry-error').textContent = '';
+  inquiryProduct = null;
 }
+
+function showInquiry(product) {
+  clearInquiry();
+  inquiryProduct = product;
+  document.getElementById('email-recipient').textContent = email;
+  document.getElementById('inquiry-product').textContent = `${product.name} · ${product.volume} · ${currency(product.price)}`;
+  inquiryDialog.showModal();
+  document.getElementById('first-name').focus();
+}
+
+inquiryFields.forEach(field => field.addEventListener('input', () => {
+  field.setCustomValidity('');
+  document.getElementById('inquiry-error').textContent = '';
+}));
+inquiryForm.addEventListener('submit', event => {
+  event.preventDefault();
+  inquiryFields.forEach(field => { field.value = field.value.trim(); });
+  const firstName = document.getElementById('first-name');
+  if (!firstName.value) firstName.setCustomValidity('Vyplňte prosím své jméno.');
+  if (!inquiryForm.reportValidity() || !inquiryProduct) return;
+  try {
+    const message = Inquiry.build(inquiryProduct, {
+      firstName: firstName.value,
+      lastName: document.getElementById('last-name').value,
+      email: document.getElementById('reply-email').value
+    }, email);
+    document.getElementById('email-subject').textContent = message.subject;
+    document.getElementById('email-body').value = message.body;
+    document.getElementById('inquiry-fields').hidden = true;
+    document.getElementById('inquiry-preview').hidden = false;
+    document.getElementById('preview-title').focus();
+  } catch (error) {
+    document.getElementById('inquiry-error').textContent = error.message;
+  }
+});
+document.getElementById('edit-inquiry').addEventListener('click', () => {
+  document.getElementById('inquiry-preview').hidden = true;
+  document.getElementById('inquiry-fields').hidden = false;
+  document.getElementById('email-body').value = '';
+  document.getElementById('first-name').focus();
+});
+inquiryDialog.addEventListener('close', () => {
+  clearInquiry();
+  if (inquiryTrigger?.isConnected) inquiryTrigger.focus();
+});
+window.addEventListener('pagehide', () => {
+  if (inquiryDialog.open) inquiryDialog.close();
+  clearInquiry();
+});
 
 function renderContacts() {
   const container = document.getElementById('contact-details');
+  if (!container) return;
   const links = [];
   if (email) {
     const link = document.createElement('a');
@@ -74,11 +121,35 @@ document.querySelectorAll('[data-category]').forEach(button => button.addEventLi
   });
   render();
 }));
-document.addEventListener('click', event => {
-  const detail = event.target.closest('[data-detail]');
+document.addEventListener('click', async event => {
   const close = event.target.closest('[data-close]');
-  if (detail) showDetail(detail.dataset.detail);
+  const inquiry = event.target.closest('[data-inquiry]');
+  const copy = event.target.closest('[data-copy-link]');
+  if (inquiry) {
+    const product = products.find(p => p.id === inquiry.dataset.inquiry && p.published);
+    if (product && email) { inquiryTrigger = inquiry; showInquiry(product); }
+  }
+  if (copy) {
+    const product = products.find(p => p.id === copy.dataset.copyLink && p.published);
+    if (!product) return;
+    const url = new URL(Catalog.url(product), window.location.origin).href;
+    const container = copy.closest('.product-sharing');
+    const status = container.querySelector('.share-status');
+    try {
+      await navigator.clipboard.writeText(url);
+      status.textContent = 'Odkaz je zkopírovaný.';
+    } catch {
+      const fallback = container.querySelector('.share-fallback');
+      fallback.hidden = false;
+      const field = fallback.querySelector('input');
+      field.value = url;
+      field.focus();
+      field.select();
+      status.textContent = 'Zkopírujte prosím označený odkaz.';
+    }
+  }
   if (close) document.getElementById(close.dataset.close).close();
 });
 renderContacts();
 render();
+document.querySelectorAll('[data-inquiry]').forEach(button => { button.hidden = !email; });

@@ -1,0 +1,57 @@
+JAK DOPLNIT FOTOGRAFIE PRODUKTŮ
+
+1. Do public/assets/products/<id-produktu>/ uložte fotografie.
+   Příklad: public/assets/products/levandulova-mast/kelimek.jpg
+   Složky pro všech osm produktů jsou připravené.
+   V názvech souborů použijte písmena bez diakritiky, číslice a pomlčky.
+   Podporované formáty: JPG/JPEG, PNG, WebP a AVIF.
+
+2. Otevřete public/products.js a u příslušného produktu vyplňte photos.
+   Příklad (soubory z příkladu je nejprve nutné do složky opravdu uložit):
+
+   photos: [
+     {
+       src: '/assets/products/levandulova-mast/kelimek.jpg',
+       alt: 'Levandulová mast v uzavřeném kelímku s etiketou',
+       caption: 'Levandulová mast, 50 ml'
+     },
+     {
+       src: '/assets/products/levandulova-mast/detail.jpg',
+       alt: 'Otevřený kelímek levandulové masti a detail její konzistence',
+       caption: 'Detail konzistence'
+     }
+   ]
+
+   src = cesta k souboru, povinná. Začíná /assets/products/, bez public.
+   alt = stručný popis toho, co na snímku skutečně je, povinný.
+   caption = viditelný popisek pod fotkou, nepovinný.
+   thumbnail = nepovinná cesta k menší verzi pro náhledy, stejná pravidla
+               jako src, např. /assets/products/levandulova-mast/kelimek-maly.jpg.
+
+3. Pořadí v photos určuje pořadí galerie. První fotka je titulní: zobrazí
+   se v katalogu, na stránce produktu a v metadatech sdílení. Pro sdílení
+   volte jako první raději JPG nebo PNG kvůli kompatibilitě sociálních sítí.
+   Po změně obrázku mohou sociální sítě ještě používat starý náhled z cache.
+
+4. Spusťte node scripts/build.cjs. Build před změnou výstupu zkontroluje,
+   že fotky existují, jejich cesty jsou správné a mají text alt.
+   Obnovte běžící náhled http://127.0.0.1:4174/ (nebo ho spusťte pomocí
+   node scripts/preview.cjs). Po kontrole lze změny commitnout a nasadit.
+
+CHOVÁNÍ GALERIE
+- photos: [] -> zůstane současná botanická ilustrace, bez prázdných polí.
+- Jedna fotografie -> hlavní fotka, bez zbytečných ovladačů.
+- Více fotografií -> hlavní fotka, náhledy, předchozí/další a počítadlo.
+- Náhledy fungují kliknutím i klávesnicí (šipky vlevo/vpravo, Home/End).
+- Kliknutím na hlavní fotku se otevře plný obrázek v nové kartě.
+- Bez JavaScriptu je vidět první fotografie a odkazy na další snímky.
+- Snímky se zobrazují celé, bez automatického ořezu produktu.
+
+PŘÍPRAVA SOUBORŮ
+Praktický výchozí rozměr je 1200–1600 px na delší straně. Obrázky předem
+zmenšete a komprimujte, pokud jsou velké; web je automaticky neoptimalizuje.
+Pro náhledy lze dodat samostatné menší obrázky (např. 400 px).
+Nepoužívejte malý náhled jako hlavní produktovou fotografii.
+
+Toto je příprava galerie ve statickém webu. Není zde přihlášená administrace
+ani nahrávání přes prohlížeč; fotografie a katalog se spravují v projektu.
