@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Připravujeme nový web | Z lůna přírody</title>
+  <meta name="description" content="Připravujeme nový web Z lůna přírody. Naše bylinné masti a kosmetiku si zatím můžete prohlédnout na Instagramu.">
+  <meta name="theme-color" content="#f8f5ec">
+  <link rel="canonical" href="{{siteUrl}}">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:title" content="Z lůna přírody · Připravujeme nový web">
+  <meta property="og:url" content="{{siteUrl}}">
+  <meta property="og:image" content="{{siteUrl}}assets/social-card.png">
+  <style>
+    * { box-sizing: border-box; }
+    html { background: #f8f5ec; color: #203f35; }
+    body { margin: 0; font-family: Georgia, serif; }
+    .page { width: min(100% - 3rem, 66rem); margin: auto; }
+    header { display: flex; align-items: center; gap: .7rem; padding: 1.8rem 0; border-bottom: 1px solid #c9cdbd; font-size: 1.4rem; }
+    .mark { width: 2rem; height: 2rem; border-radius: 50%; }
+    main { min-height: 73vh; display: grid; grid-template-columns: 3fr 2fr; gap: 3rem; align-items: center; padding: 3rem 0; }
+    h1 { margin: 0; font-weight: 400; font-size: clamp(3.15rem, 6.9vw, 6.4rem); line-height: 1.01; letter-spacing: -.055em; }
+    em { color: #53684a; }
+    p, a { font-family: system-ui, sans-serif; }
+    p { max-width: 32ch; margin: 1.8rem 0; font-size: 1.13rem; line-height: 1.65; }
+    a { display: inline-flex; gap: 1.2rem; align-items: center; background: #203f35; color: white; border-radius: 5rem; padding: .95rem 1.45rem; text-decoration: none; font-weight: 600; }
+    a:hover { background: #385b45; }
+    a:focus-visible { outline: 3px solid #6b5731; outline-offset: 5px; }
+    .herb { display: grid; place-items: center; width: min(100%, 22rem); aspect-ratio: 4 / 5; justify-self: center; background: #eae6d8; border-radius: 50% 50% 46% 46%; }
+    .herb svg { height: 88%; width: 84%; mix-blend-mode: multiply; }
+    @media (max-width: 640px) {
+      header { padding: 1.1rem 0; font-size: 1.2rem; }
+      main { grid-template-columns: 1fr; gap: 2rem; padding: 2rem 0 3rem; }
+      .herb { grid-row: 1; width: 8.5rem; }
+      .copy { text-align: center; }
+      p { margin: 1.1rem auto 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header><img class="mark" src="/apple-touch-icon.png" alt=""> Z lůna přírody</header>
+    <main>
+      <div class="copy">
+        <h1>Připravujeme<br><em>nový web.</em></h1>
+        <p>Naše bylinné masti a kosmetiku si zatím můžete prohlédnout na Instagramu.</p>
+        <a href="{{instagramUrl}}">Navštívit Instagram <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="herb" aria-hidden="true">
+        <svg viewBox="890 80 350 590"><image href="/assets/3.png" width="1366" height="768"/></svg>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

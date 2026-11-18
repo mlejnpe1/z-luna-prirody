@@ -1,8 +1,10 @@
 Z LŮNA PŘÍRODY
 Statická prezentace značky, katalog a samostatné stránky produktů.
 
-STAV TÉTO VERZE
-Tato verze je určená k předvedení klientce. Produktový formulář pouze
+VEŘEJNÝ WEB A NÁHLED
+Větev main nasazuje na https://zlunaprirody.cz/ dočasnou stránku s Instagramem.
+Do větve preview posílejte úpravy celého webu pro předvedení klientce.
+Vercel ve svém prostředí Preview sestaví katalog. Produktový formulář pouze
 zobrazuje náhled nezávazné poptávky; neodesílá zprávy, neotevírá poštu
 ani nevytváří odkaz mailto s vyplněnými údaji. Používejte testovací údaje.
 Přímý e-mail a Instagram v kontaktech zůstávají funkční.
@@ -26,18 +28,20 @@ Alternativně lze z kořene projektu spustit npx.cmd vercel --prod.
 Projekt nepotřebuje npm závislosti ani databázi; používá vestavěné Node API.
 
 LOKÁLNÍ NÁHLED
-  node scripts/preview.cjs
+  node scripts/preview.cjs            dočasná úvodní stránka
+  node scripts/preview.cjs --catalog  celý rozpracovaný web
 Adresa: http://127.0.0.1:4174. Zastavení: Ctrl+C.
 Spuštění nejprve vytvoří dist. Po změně zdrojů za běhu spusťte
-node scripts/build.cjs a obnovte prohlížeč. dist neupravujte ručně.
+node scripts/build.cjs (pro katalog s --catalog) a obnovte prohlížeč.
 
 KONTROLY
-  node scripts/build.cjs
+  node scripts/build.cjs --catalog
   node scripts/check-site.cjs
   node scripts/check-gallery.cjs
   node scripts/check-inquiry.cjs
 
 ÚPRAVY
+holding/index.html       dočasná úvodní stránka
 public/index.html        hlavní obsah, patička a ukázkový formulář
 public/style.css         vzhled
 public/products.js       produkty, ceny, složení, publikace a fotografie
@@ -47,7 +51,8 @@ public/gallery.js       přepínání fotografií
 public/app.js           filtrování, sdílení, kontakt a ukázka poptávky
 public/inquiry.js       vytvoření textu ukázkové poptávky
 public/assets/products/ fotografie podle ID produktu
-scripts/build.cjs       generování produktových stránek, metadat a sitemap
+scripts/build.cjs       výběr úvodní stránky nebo katalogu podle prostředí
+scripts/build-catalog.cjs  generování produktových stránek, metadat a sitemap
 FOTOGRAFIE.txt          návod pro doplnění fotografií
 Patička se ze šablony index.html přebírá na všechny produktové stránky.
 
@@ -76,11 +81,3 @@ Každá produktová stránka má vlastní titulek, popis, canonical, Open Graph
 pro jeho náhled sdílení; bez fotografií se použije společný obrázek značky.
 ID produktu je trvalá část adresy. Při změně ID přesměrujte starou adresu
 ve vercel.json; samotná změna názvu adresu nemění.
-
-BUDOUCÍ DOMÉNA
-Nyní: https://z-luna-prirody.vercel.app/
-Po připojení https://zlunaprirody.cz/ ve Vercelu změňte siteUrl v
-public/site-config.js a znovu nasaďte. Build aktualizuje canonical, og:url,
-adresy sdílených obrázků i sitemap. Ve Vercelu nastavte také přesměrování
-starého hostitele. Změna konfigurace sama nenastaví DNS ani přesměrování.
-Sociální sítě mohou mít náhledy v cache; ověřujte je po nasazení.
