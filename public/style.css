@@ -262,7 +262,7 @@ textarea { resize: vertical; }
 .cart-line-price { align-self: start; text-align: right; white-space: nowrap; }
 .cart-item-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; }
 .cart-quantity { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.cart-quantity button { border: 1px solid var(--line); background: transparent; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; }
+.cart-quantity button { display: grid; place-items: center; border: 1px solid var(--line); background: transparent; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; }
 .cart-quantity button:hover:not(:disabled) { background: var(--sage); }
 .cart-quantity button:disabled { opacity: .45; cursor: default; }
 .cart-totals { display: grid; gap: 6px; margin: 8px 0 16px; font-variant-numeric: tabular-nums; }
@@ -404,7 +404,7 @@ body:has(dialog[open]){overflow:hidden}
 .gallery-viewer-image { display: block; max-width: 100%; max-height: 100%; place-self: center; }
 .gallery-caption{font-size:12px;color:var(--muted);padding-top:10px}
 .gallery-navigation{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:15px 0 12px}
-.gallery-navigation button{width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--green);font-size:20px}
+.gallery-navigation button{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--green);font-size:20px}
 .gallery-navigation button:hover{background:var(--sage)}
 .gallery-status{margin:0;font-size:12px;color:var(--muted)}
 .gallery-thumbnails{display:flex;gap:10px;overflow-x:auto;padding:5px;scroll-padding:5px;max-width:100%}

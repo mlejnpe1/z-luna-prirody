@@ -5,6 +5,7 @@
   <meta name="description" content="Z lůna přírody — ručně vyráběné bylinné masti a kosmetika.">
   <title>Z lůna přírody — péče, která má kořeny</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="icons.css">
 </head>
 <body>
 <header class="header">
@@ -27,7 +28,7 @@
       <div>
         <h1>Z lůna <em>přírody.</em></h1>
         <p>Ručně vyráběné bylinné masti a kosmetika od Adély Švecové.</p>
-        <a class="button" href="#produkty">Prohlédnout produkty <span aria-hidden="true">↓</span></a>
+        <a class="button" href="#produkty">Prohlédnout produkty <span class="icon icon-arrow icon-arrow-down" aria-hidden="true"></span></a>
       </div>
       <div class="hero-art">
         <div class="hero-print">
@@ -116,7 +117,7 @@
         <p>Mým cílem je vytvářet poctivé, ručně vyráběné produkty, které spojují sílu přírody, jednoduchost a péči. Z lůna přírody pro mě není jen studentský projekt, ale také splněný sen a možnost proměnit svou vášeň v něco skutečného.</p>
         <div id="kontakt">
           <p id="contact-lead">Ráda vám pomůžu s výběrem a dostupností produktů.</p>
-          <div id="contact-details"><a class="text-link" href="mailto:z.luna.prirody@seznam.cz">z.luna.prirody@seznam.cz</a><a class="text-link" href="https://www.instagram.com/z_luna_prirody/" target="_blank" rel="noopener noreferrer">Instagram ↗</a></div>
+          <div id="contact-details"><a class="text-link" href="mailto:z.luna.prirody@seznam.cz">z.luna.prirody@seznam.cz</a><a class="text-link" href="https://www.instagram.com/z_luna_prirody/" target="_blank" rel="noopener noreferrer">Instagram <span class="icon icon-arrow icon-arrow-external" aria-hidden="true"></span></a></div>
           <dl class="author-phone">
             <dt>Telefon</dt>
             <dd><a class="text-link" href="tel:+420704129009">+420 704 129 009</a></dd>
@@ -143,7 +144,7 @@
         <div><dt>Záloha za vratné obaly</dt><dd id="cart-deposit-total"></dd></div>
         <div class="cart-grand-total"><dt>Celkem včetně záloh</dt><dd id="cart-total"></dd></div>
       </dl>
-      <button id="cart-checkout" class="button" type="button">Pokračovat k poptávce <span aria-hidden="true">→</span></button>
+      <button id="cart-checkout" class="button" type="button">Pokračovat k poptávce <span class="icon icon-arrow" aria-hidden="true"></span></button>
     </div>
   </div>
   <div id="inquiry-fields" hidden>
@@ -159,7 +160,7 @@
       <p class="privacy-note"><a class="privacy-link" href="/soukromi/" target="_blank" rel="noopener noreferrer">Jak nakládáme s osobními údaji<span class="visually-hidden"> (nová karta)</span></a></p>
       <p id="inquiry-error" class="form-error" role="alert"></p>
       <div class="inquiry-actions">
-        <button class="button" type="submit">Otevřít e-mail s poptávkou <span aria-hidden="true">→</span></button>
+        <button class="button" type="submit">Otevřít e-mail s poptávkou <span class="icon icon-arrow" aria-hidden="true"></span></button>
         <button class="text-button" type="submit" value="copy">Zkopírovat pro webmail</button>
       </div>
       <p class="form-help">Předvyplněnou zprávu odešlete ve své e-mailové aplikaci.</p>
@@ -169,7 +170,7 @@
       <label for="inquiry-copy-text">Text ke zkopírování</label>
       <textarea id="inquiry-copy-text" readonly rows="6" spellcheck="false"></textarea>
     </div>
-    <button id="edit-cart" class="text-button" type="button">← Upravit košík</button>
+    <button id="edit-cart" class="text-button" type="button"><span class="icon icon-arrow icon-arrow-left" aria-hidden="true"></span> Upravit košík</button>
   </div>
 </dialog>
 <script src="site-config.js"></script>

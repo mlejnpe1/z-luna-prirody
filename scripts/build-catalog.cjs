@@ -79,6 +79,7 @@ function head(title, description, pagePath, noindex = false, sharePhoto = null) 
   <meta name="twitter:image" content="${esc(image)}">
   <meta name="twitter:image:alt" content="${esc(imageAlt)}">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/icons.css">
 </head>`;
 }
 
@@ -147,7 +148,7 @@ ${head(`${product.name} · ${product.volume} | Z lůna přírody`, product.descr
     </form>
     <noscript><p>Napište nám na <a class="privacy-link" href="mailto:${esc(config.email)}">${esc(config.email)}</a> a uveďte název produktu.</p></noscript>
   </div></div>
-  <a class="button secondary" href="/#produkty">← Všechny produkty</a>
+  <a class="button secondary" href="/#produkty"><span class="icon icon-arrow icon-arrow-left" aria-hidden="true"></span> Všechny produkty</a>
 </main>${footer}${dialogs}${scripts}</body></html>`;
   const directory = path.join(output, 'produkty', product.id);
   fs.mkdirSync(directory, { recursive: true });

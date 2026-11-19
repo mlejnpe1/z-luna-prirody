@@ -70,9 +70,9 @@ function updateCart() {
       <strong class="cart-line-price">${currency(product.price * quantity)}</strong>
       <div class="cart-item-actions">
         <div class="cart-quantity">
-          <button type="button" data-quantity="-1" aria-label="Ubrat kus: ${label}" ${quantity === 1 ? 'disabled' : ''}>−</button>
+          <button type="button" data-quantity="-1" aria-label="Ubrat kus: ${label}" ${quantity === 1 ? 'disabled' : ''}><span class="icon icon-minus" aria-hidden="true"></span></button>
           <span>${quantity} ks</span>
-          <button type="button" data-quantity="1" aria-label="Přidat kus: ${label}" ${quantity === maxQuantity ? 'disabled' : ''}>+</button>
+          <button type="button" data-quantity="1" aria-label="Přidat kus: ${label}" ${quantity === maxQuantity ? 'disabled' : ''}><span class="icon icon-plus" aria-hidden="true"></span></button>
         </div>
         <button class="text-button" type="button" data-quantity="remove" aria-label="Odebrat: ${label}">Odebrat</button>
       </div>
@@ -247,7 +247,10 @@ function renderContacts() {
       link.href = url.href;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = 'Instagram ↗';
+      const icon = document.createElement('span');
+      icon.className = 'icon icon-arrow icon-arrow-external';
+      icon.setAttribute('aria-hidden', 'true');
+      link.append('Instagram ', icon);
       links.push(link);
     }
   } catch { /* Sociální profil není vyplněný. */ }

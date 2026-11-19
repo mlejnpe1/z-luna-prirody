@@ -1,0 +1,49 @@
+.icon {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  vertical-align: -.1em;
+}
+
+.icon-arrow::before,
+.icon-minus::before,
+.icon-plus::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12.5%;
+  width: 75%;
+  height: 1.5px;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+.icon-arrow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 12.5%;
+  width: .43em;
+  height: .43em;
+  box-sizing: border-box;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.icon-arrow-left { transform: rotate(180deg); }
+.icon-arrow-down { transform: rotate(90deg); }
+.icon-arrow-external { transform: rotate(-45deg); }
+
+.icon-plus::after {
+  content: "";
+  position: absolute;
+  top: 12.5%;
+  left: 50%;
+  width: 1.5px;
+  height: 75%;
+  background: currentColor;
+  transform: translateX(-50%);
+}
