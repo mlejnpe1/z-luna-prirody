@@ -4,13 +4,15 @@ Statická prezentace značky, katalog a samostatné stránky produktů.
 VEŘEJNÝ WEB A NÁHLED
 Větev main nasazuje na https://zlunaprirody.cz/ dočasnou stránku s Instagramem.
 Do větve preview posílejte úpravy celého webu pro předvedení klientce.
-Vercel ve svém prostředí Preview sestaví katalog. Produktový formulář pouze
-zobrazuje náhled nezávazné poptávky; neodesílá zprávy, neotevírá poštu
-ani nevytváří odkaz mailto s vyplněnými údaji. Používejte testovací údaje.
+Vercel ve svém prostředí Preview sestaví katalog. Poptávkový formulář
+připraví zprávu na kontaktní e-mail a otevře ji v poštovní aplikaci.
+Zprávu odešle zákazník ze své schránky. Pro webmail lze text zkopírovat.
 Přímý e-mail a Instagram v kontaktech zůstávají funkční.
-Rozpracované právní dokumenty a dřívější podoba formuláře zůstávají jen
-lokálně v .private/privacy-draft/, mimo Git i nasazení. Před spuštěním
-skutečného poptávkového formuláře je potřeba tuto část dokončit a propojit.
+Stránka /soukromi/ se sestavuje ze scripts/privacy-content.html a odkazuje
+se na ni z formuláře i patičky. Kontaktní adresu pro ostré sestavení
+katalogu lze zadat v proměnné ZLP_PRIVACY_CONTACT_ADDRESS. Vercel Preview
+tuto proměnnou nepoužívá. Místní sestavení s --privacy-draft čte adresu ze souboru
+.private/privacy-draft/contact-address.txt, který je mimo Git.
 Samotná adresa na Vercelu ani tato konfigurace neomezují přístup návštěvníků.
 
 PROJEKT A NASAZENÍ
@@ -30,7 +32,7 @@ Projekt nepotřebuje npm závislosti ani databázi; používá vestavěné Node 
 LOKÁLNÍ NÁHLED
   node scripts/preview.cjs            dočasná úvodní stránka
   node scripts/preview.cjs --catalog  celý rozpracovaný web
-  node scripts/preview.cjs --catalog --privacy-draft  web včetně místního konceptu GDPR
+  node scripts/preview.cjs --catalog --privacy-draft  web s kontaktní adresou na stránce soukromí
 Adresa: http://127.0.0.1:4174. Zastavení: Ctrl+C.
 Spuštění nejprve vytvoří dist. Po změně zdrojů za běhu spusťte
 node scripts/build.cjs (pro katalog s --catalog) a obnovte prohlížeč.
@@ -43,17 +45,18 @@ KONTROLY
 
 ÚPRAVY
 holding/index.html       dočasná úvodní stránka
-public/index.html        hlavní obsah, patička a ukázkový formulář
+public/index.html        hlavní obsah, patička a formulář poptávky
 public/style.css         vzhled
 public/products.js       produkty, ceny, složení, publikace a fotografie
 public/site-config.js    hlavní URL, veřejné kontakty, vůně a zálohy na obaly
 public/catalog.js       společné vykreslení katalogu a galerie
 public/gallery.js       přepínání fotografií
-public/app.js           filtrování, košík, kontakt a ukázka poptávky
-public/inquiry.js       vytvoření textu ukázkové poptávky
+public/app.js           filtrování, košík, kontakt a připravení poptávky
+public/inquiry.js       text poptávky a předvyplněný odkaz mailto
 public/assets/products/ fotografie podle ID produktu
 scripts/build.cjs       výběr úvodní stránky nebo katalogu podle prostředí
 scripts/build-catalog.cjs  generování produktových stránek, metadat a sitemap
+scripts/privacy-content.html  text informací o soukromí
 FOTOGRAFIE.txt          návod pro doplnění fotografií
 Patička se ze šablony index.html přebírá na všechny produktové stránky.
 
@@ -61,8 +64,8 @@ FUNKCE A OMEZENÍ
 Každý produkt má vlastní adresu /produkty/<id>/; obrázek, název i Prohlédnout
 vedou přímo na jeho stránku. Produkty lze přidávat z detailu s volbou množství
 a případně vůně. Košík uchovává položky a množství
-v aktuální kartě a připraví společný náhled nezávazné poptávky.
-Košík i náhled poptávky uvádějí ceny výrobků, vratné zálohy a celkovou částku.
+v aktuální kartě a připraví společnou nezávaznou poptávku pro poštu.
+Košík i zpráva uvádějí ceny výrobků, vratné zálohy a celkovou částku.
 Kontaktní údaje se při zavření dialogu vymažou.
 Katalog i produktové informace fungují bez JavaScriptu. Interaktivní galerie,
 košík a formulář vyžadují JavaScript. Odkazy na další fotky fungují i bez něj.

@@ -8,11 +8,16 @@ for (const file of ['site-config.js', 'products.js', 'catalog.js', 'inquiry.js']
 }
 const build = vm.runInContext('Inquiry.build', context);
 const catalog = vm.runInContext('products', context);
-const recipient = 'z.luna.prirody@seznam.cz';
+const recipient = vm.runInContext('siteConfig.email', context);
 const contact = { firstName: '  Žofie & <Test>  ', lastName: '', email: 'zofie+test@example.com' };
 for (const product of catalog.filter(p => p.published)) {
   const message = build([{ product, quantity: 1 }], contact, recipient);
-  assert.equal(message.href, undefined);
+  const draft = new URL(message.href);
+  assert.equal(draft.protocol, 'mailto:');
+  assert.equal(draft.pathname, recipient);
+  assert.deepEqual([...draft.searchParams.keys()], ['subject', 'body']);
+  assert.equal(draft.searchParams.get('subject'), message.subject);
+  assert.equal(draft.searchParams.get('body'), message.body);
   assert.equal(message.subject, `Poptávka: ${product.name}`);
   assert.ok(message.body.includes(`${product.name} (${product.volume})`));
   assert.ok(message.body.includes('Jméno: Žofie & <Test>\r\n'));
@@ -25,7 +30,7 @@ const together = [
   { product: catalog[0], quantity: 3 }
 ];
 const combined = build(together, { ...contact, returnPackaging: '2× 50 ml' }, recipient);
-assert.equal(combined.href, undefined);
+assert.equal(new URL(combined.href).searchParams.get('body'), combined.body);
 assert.equal(combined.subject, 'Poptávka: vybrané produkty');
 assert.ok(combined.body.includes('2× Balzám na rty (10 ml) — vůně: Levandule'));
 assert.ok(combined.body.includes('1× Balzám na rty (10 ml) — vůně: Pomeranč'));
@@ -47,4 +52,5 @@ for (const invalid of [
   assert.throws(() => build(together, { ...contact, ...invalid }, recipient));
 }
 assert.throws(() => build(together, contact, 'x@example.com?bcc=other@example.com'));
-console.log('OK: společná poptávka s množstvím a vůněmi, jednotlivé produkty a validace kontaktu. Náhled nevytváří odkaz pro odeslání.');
+assert.throws(() => build(together, contact, 'x@example.com,other@example.com'));
+console.log('OK: kontaktní příjemce, kódování e-mailu, společná poptávka s množstvím a vůněmi a validace formuláře.');

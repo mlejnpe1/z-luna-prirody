@@ -1,5 +1,5 @@
 'use strict';
-// Ukázkový formulář pro prezentaci. Vrací jen text, bez odeslání a odkazu mailto.
+// Připraví poptávku pro poštovní aplikaci zákazníka.
 const Inquiry = (() => {
   function singleLine(value, maxLength) {
     const text = String(value ?? '').trim();
@@ -15,7 +15,8 @@ const Inquiry = (() => {
     const replyEmail = singleLine(contact.email, 254);
     const returnPackaging = singleLine(contact.returnPackaging, 120);
     const validEmail = value => /^[^\s@?&#]+@[^\s@?&#]+\.[^\s@?&#]+$/.test(value);
-    if (!firstName || !validEmail(replyEmail) || !validEmail(recipient)) {
+    const validRecipient = /^[a-z0-9._+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(recipient);
+    if (!firstName || !validEmail(replyEmail) || !validRecipient) {
       throw new Error('Vyplňte jméno a platnou e-mailovou adresu.');
     }
     const name = [firstName, lastName].filter(Boolean).join(' ');
@@ -35,12 +36,13 @@ const Inquiry = (() => {
       `Záloha za vratné obaly: ${currency(depositTotal)}`,
       `Celkem včetně záloh: ${currency(total)}`,
       ...(returnPackaging ? [`Obaly k vrácení: ${returnPackaging}`] : []), '',
-      'Prosím o potvrzení dostupnosti a informaci o možnostech objednání, platby a doručení.',
+      'Prosím o potvrzení dostupnosti a konečné ceny. Způsob převzetí a platby si s vámi domluvím.',
       '', `Jméno: ${name}`, `E-mail pro odpověď: ${replyEmail}`, '',
       'Jde o nezávaznou poptávku.',
       '', 'Děkuji.', name
     ].join('\r\n');
-    return { subject, body };
+    const href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return { subject, body, href };
   }
   return { build };
 })();

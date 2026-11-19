@@ -20,7 +20,7 @@ for (const file of files) {
   assert.ok(html.includes('<meta name="twitter:card" content="summary_large_image">'), file);
   assert.ok(!html.includes('localhost') && !html.includes('127.0.0.1'), file);
   assert.ok(!html.includes('ochrana-osobnich-udaju.html') && !html.includes('legal-pending'), file);
-  assert.ok(!html.includes('id="open-email"'), file);
+  assert.ok(!html.includes('id="inquiry-preview"') && !html.includes('test@example.com'), file);
   assert.ok(html.includes('mailto:mlejnek.petr.ml@gmail.com'), file);
   assert.ok(html.includes('href="/soukromi/"'), file);
   for (const match of html.matchAll(/(?:src|href)="(\/(?!\/)[^"]*)"/g)) {

@@ -8,6 +8,10 @@ const inquiryDialog = document.getElementById('inquiry-dialog');
 const inquiryTitle = document.getElementById('inquiry-title');
 const inquiryForm = document.getElementById('inquiry-form');
 const inquiryFields = ['first-name', 'last-name', 'reply-email', 'return-packaging'].map(id => document.getElementById(id));
+const inquiryStatus = document.getElementById('inquiry-status');
+const inquiryCopyFallback = document.getElementById('inquiry-copy-fallback');
+const inquiryCopyText = document.getElementById('inquiry-copy-text');
+let inquiryVersion = 0;
 const productOrder = document.getElementById('product-order');
 const productQuantity = document.getElementById('product-quantity');
 const productScent = document.getElementById('product-scent');
@@ -118,14 +122,19 @@ function render() {
   grid.innerHTML = visible.map(product => Catalog.card(product, Boolean(email))).join('') || '<p class="empty">Této kombinaci filtrů neodpovídá žádný produkt.</p>';
 }
 
+function clearInquiryFeedback() {
+  inquiryVersion += 1;
+  inquiryStatus.textContent = '';
+  inquiryCopyFallback.hidden = true;
+  inquiryCopyText.value = '';
+  document.getElementById('inquiry-error').textContent = '';
+}
+
 function clearInquiry() {
   inquiryForm.reset();
   inquiryFields.forEach(field => { field.value = ''; field.setCustomValidity(''); });
-  document.getElementById('inquiry-preview').hidden = true;
   document.getElementById('inquiry-fields').hidden = true;
-  document.getElementById('email-subject').textContent = '';
-  document.getElementById('email-body').value = '';
-  document.getElementById('inquiry-error').textContent = '';
+  clearInquiryFeedback();
 }
 
 function showCart() {
@@ -159,10 +168,12 @@ document.getElementById('cart-checkout').addEventListener('click', () => {
 
 inquiryFields.forEach(field => field.addEventListener('input', () => {
   field.setCustomValidity('');
-  document.getElementById('inquiry-error').textContent = '';
+  clearInquiryFeedback();
 }));
-inquiryForm.addEventListener('submit', event => {
+inquiryForm.addEventListener('submit', async event => {
   event.preventDefault();
+  clearInquiryFeedback();
+  const version = inquiryVersion;
   inquiryFields.forEach(field => { field.value = field.value.trim(); });
   const firstName = document.getElementById('first-name');
   if (!firstName.value) firstName.setCustomValidity('Vyplňte prosím své jméno.');
@@ -174,21 +185,26 @@ inquiryForm.addEventListener('submit', event => {
       email: document.getElementById('reply-email').value,
       returnPackaging: document.getElementById('return-packaging').value
     }, email);
-    document.getElementById('email-recipient').textContent = email;
-    document.getElementById('email-subject').textContent = message.subject;
-    document.getElementById('email-body').value = message.body;
-    document.getElementById('inquiry-fields').hidden = true;
-    document.getElementById('inquiry-preview').hidden = false;
-    document.getElementById('preview-title').focus();
+    if (event.submitter?.value !== 'copy') {
+      const link = document.createElement('a');
+      link.href = message.href;
+      link.click();
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(message.body);
+      if (inquiryVersion === version) inquiryStatus.textContent = `Text je zkopírovaný. Vložte ho do e-mailu pro ${email}.`;
+    } catch {
+      if (inquiryVersion !== version) return;
+      inquiryStatus.textContent = `Označený text zkopírujte do e-mailu pro ${email}.`;
+      inquiryCopyFallback.hidden = false;
+      inquiryCopyText.value = message.body;
+      inquiryCopyText.focus();
+      inquiryCopyText.select();
+    }
   } catch (error) {
     document.getElementById('inquiry-error').textContent = error.message;
   }
-});
-document.getElementById('edit-inquiry').addEventListener('click', () => {
-  document.getElementById('inquiry-preview').hidden = true;
-  document.getElementById('inquiry-fields').hidden = false;
-  document.getElementById('email-body').value = '';
-  document.getElementById('first-name').focus();
 });
 inquiryDialog.addEventListener('close', () => {
   clearInquiry();

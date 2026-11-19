@@ -18,10 +18,10 @@ if (base.protocol !== 'https:' || base.username || base.password || base.search 
 }
 const published = products.filter(p => p.published);
 const { scents, packagingDeposits } = config;
-const showPrivacyDraft = !process.env.VERCEL && !process.env.VERCEL_ENV && process.argv.includes('--privacy-draft');
-const privacyDraft = showPrivacyDraft
-  ? fs.readFileSync(path.join(root, '.private', 'privacy-draft', 'public', 'ochrana-osobnich-udaju.html'), 'utf8')
-  : '';
+const includeLocalPrivacyAddress = !process.env.VERCEL && !process.env.VERCEL_ENV && process.argv.includes('--privacy-draft');
+const privacyAddress = includeLocalPrivacyAddress
+  ? fs.readFileSync(path.join(root, '.private', 'privacy-draft', 'contact-address.txt'), 'utf8').trim()
+  : process.env.VERCEL_ENV === 'preview' ? '' : process.env.ZLP_PRIVACY_CONTACT_ADDRESS?.trim();
 const ids = new Set();
 for (const p of published) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id) || ids.has(p.id)) throw new Error('Neplatné nebo duplicitní ID produktu.');
@@ -106,29 +106,13 @@ if (!header || !footer || !dialogs.includes('inquiry-dialog')) throw new Error('
 const scripts = '<script src="/site-config.js"></script><script src="/products.js"></script><script src="/catalog.js"></script><script src="/inquiry.js"></script><script src="/app.js"></script><script src="/gallery.js"></script>';
 const privacyDir = path.join(output, 'soukromi');
 fs.mkdirSync(privacyDir);
+const privacyContent = fs.readFileSync(path.join(__dirname, 'privacy-content.html'), 'utf8')
+  .replaceAll('{{email}}', () => esc(config.email))
+  .replace('{{contact-address}}', () => privacyAddress ? `<dt>Kontaktní adresa</dt><dd>${esc(privacyAddress)}</dd>` : '');
+
 fs.writeFileSync(path.join(privacyDir, 'index.html'), `<!doctype html><html lang="cs">
-${head('Osobní údaje a soukromí | Z lůna přírody', 'Informace o soukromí při použití ukázky poptávky.', '/soukromi/', true)}
-<body>${header}
-<main class="section legal-page">
-  <h1>Osobní údaje a soukromí</h1>
-  <h2>Košík</h2>
-  <p>Prohlížeč si po dobu návštěvy v otevřené kartě pamatuje vybrané produkty, množství a vůně. Kontaktní údaje se do košíku neukládají.</p>
-  <h2>Ukázka nezávazné poptávky</h2>
-  <p>Pro vyzkoušení použijte smyšlené jméno a e-mail, například test@example.com. Formulář vytvoří text poptávky z položek v košíku, kontaktních údajů a případné poznámky o vracených obalech. Web formulář neodesílá ani neukládá. Po zavření dialogu se vyplněné údaje i náhled vymažou.</p>
-  <h2>Přímý kontakt</h2>
-  <p>Máte-li dotaz k produktům nebo k osobním údajům, napište Adéle Švecové na <a href="mailto:${esc(config.email)}">${esc(config.email)}</a>. Pokud odešlete vlastní e-mail, zpráva a kontaktní údaje se doručí do její schránky.</p>
-  ${showPrivacyDraft ? '<p><a href="/soukromi/koncept.html">Místní koncept informací pro budoucí provoz</a></p>' : ''}
-</main>${footer}</body></html>`);
-if (showPrivacyDraft) {
-  const draftContent = privacyDraft.match(/<main class="section legal-page">[\s\S]*?<\/main>/)?.[0];
-  if (!draftContent) throw new Error('V konceptu ochrany osobních údajů chybí hlavní obsah.');
-  const updatedDraft = draftContent
-    .replace('<aside class="legal-pending">', '<aside class="legal-pending"><p>Text popisuje plánovanou e-mailovou poptávku. V současné ukázce se pouze zobrazí text ve formuláři.</p>')
-    .replace('nepoužívá localStorage ani sessionStorage', 'ukládá do sessionStorage pouze produkty, množství a vůně v košíku');
-  fs.writeFileSync(path.join(privacyDir, 'koncept.html'), `<!doctype html><html lang="cs">
-  ${head('Koncept ochrany osobních údajů | Z lůna přírody', 'Místní koncept informací pro budoucí provoz.', '/soukromi/koncept.html', true)}
-  <body>${header}${updatedDraft}${footer}</body></html>`);
-}
+${head('Osobní údaje a soukromí | Z lůna přírody', 'Informace o zpracování osobních údajů při návštěvě webu, poptávce a nákupu.', '/soukromi/', true)}
+<body>${header}${privacyContent}${footer}</body></html>`);
 for (const product of published) {
   const pagePath = catalog.url(product);
   const scentField = product.scentChoice
@@ -151,7 +135,7 @@ ${head(`${product.name} · ${product.volume} | Z lůna přírody`, product.descr
     <p class="detail-deposit">+ ${catalog.price(catalog.packagingDeposit(product))} <a href="/#obaly">záloha za vratný obal</a></p>
     <p class="product-description">${esc(product.description)}</p>
     <h2>Složení</h2><p>${esc(product.ingredients)}</p>
-    <p class="product-availability">Dostupnost a možnosti předání či doručení potvrdíme e-mailem.</p>
+    <p class="product-availability">Adéla vám e-mailem potvrdí dostupnost. Převzetí a platbu si domluvíte přímo s ní. <a href="/#jak-objednat">Jak objednat</a></p>
     <form id="product-order" data-product-id="${esc(product.id)}" hidden>
       ${scentField}
       <div class="product-order-actions">
