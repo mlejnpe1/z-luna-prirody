@@ -9,7 +9,7 @@ for (const file of ['products.js', 'site-config.js']) vm.runInContext(fs.readFil
 const { products, config } = vm.runInContext('({products,config:siteConfig})', context);
 const published = products.filter(p => p.published);
 function read(file) { return fs.readFileSync(path.join(output, file), 'utf8'); }
-const files = ['index.html', ...published.map(p => `produkty/${p.id}/index.html`)];
+const files = ['index.html', 'soukromi/index.html', ...published.map(p => `produkty/${p.id}/index.html`)];
 for (const file of files) {
   const html = read(file);
   assert.equal((html.match(/<title>/g) || []).length, 1, file);
@@ -22,6 +22,7 @@ for (const file of files) {
   assert.ok(!html.includes('ochrana-osobnich-udaju.html') && !html.includes('legal-pending'), file);
   assert.ok(!html.includes('id="open-email"'), file);
   assert.ok(html.includes('mailto:mlejnek.petr.ml@gmail.com'), file);
+  assert.ok(html.includes('href="/soukromi/"'), file);
   for (const match of html.matchAll(/(?:src|href)="(\/(?!\/)[^"]*)"/g)) {
     let local = match[1].split(/[?#]/)[0];
     if (local.endsWith('/')) local += 'index.html';
@@ -31,12 +32,16 @@ for (const file of files) {
 for (const product of published) {
   const html = read(`produkty/${product.id}/index.html`);
   assert.ok(html.includes(`<h1>${product.name}</h1>`));
-  assert.ok(html.includes(`data-inquiry="${product.id}"`));
+  assert.ok(html.includes(`data-product-id="${product.id}"`));
+  assert.ok(html.includes(`id="product-quantity" type="number" inputmode="numeric" min="1" max="${config.maxCartQuantity}"`));
+  assert.ok(!html.includes('Kopírovat odkaz na produkt') && !html.includes('Ilustrační vyobrazení.'));
   assert.ok(html.includes(`href="${new URL(`/produkty/${product.id}/`, config.siteUrl).href}"`));
   assert.ok(html.includes(product.description));
   assert.ok(html.includes(product.ingredients));
+  assert.ok(html.includes('href="/#obaly"'));
 }
 assert.ok(!fs.existsSync(path.join(output, 'ochrana-osobnich-udaju.html')));
+assert.ok(!fs.existsSync(path.join(output, 'soukromi/koncept.html')));
 assert.ok(!read('sitemap.xml').includes('ochrana-osobnich-udaju'));
 assert.equal((read('sitemap.xml').match(/<loc>/g) || []).length, published.length + 1);
 for (const [file, width, height] of [['assets/social-card.png',1200,630],['favicon-96.png',96,96],['apple-touch-icon.png',180,180]]) {

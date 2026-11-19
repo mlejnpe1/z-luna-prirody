@@ -3,10 +3,33 @@ document.querySelectorAll('[data-gallery]').forEach(gallery => {
   const product = products.find(item => item.id === gallery.dataset.gallery && item.published);
   if (!product) return;
   const photos = Catalog.photos(product);
-  if (photos.length < 2) return;
-  const controls = gallery.querySelector('[data-gallery-controls]');
   const image = gallery.querySelector('.gallery-main-image');
   const full = gallery.querySelector('.gallery-full');
+  const viewer = gallery.querySelector('.gallery-viewer');
+  if (typeof viewer.showModal === 'function') {
+    const viewerImage = viewer.querySelector('.gallery-viewer-image');
+    full.setAttribute('aria-haspopup', 'dialog');
+    full.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      viewerImage.src = full.href;
+      viewerImage.alt = image.alt;
+      viewer.showModal();
+    });
+    viewer.addEventListener('close', () => full.focus({ preventScroll: true }));
+    const toolbar = viewer.querySelector('.gallery-viewer-toolbar');
+    const isMargin = event => event.target === viewer || event.target === toolbar;
+    let pointerStartedInMargin = false;
+    viewer.addEventListener('pointerdown', event => {
+      pointerStartedInMargin = isMargin(event);
+    });
+    viewer.addEventListener('click', event => {
+      if (pointerStartedInMargin && isMargin(event)) viewer.close();
+      pointerStartedInMargin = false;
+    });
+  }
+  if (photos.length < 2) return;
+  const controls = gallery.querySelector('[data-gallery-controls]');
   const caption = gallery.querySelector('.gallery-caption');
   const status = gallery.querySelector('.gallery-status');
   const thumbnails = [...gallery.querySelectorAll('[data-gallery-index]')];
