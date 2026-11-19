@@ -30,6 +30,7 @@ Projekt nepotřebuje npm závislosti ani databázi; používá vestavěné Node 
 LOKÁLNÍ NÁHLED
   node scripts/preview.cjs            dočasná úvodní stránka
   node scripts/preview.cjs --catalog  celý rozpracovaný web
+  node scripts/preview.cjs --catalog --privacy-draft  web včetně místního konceptu GDPR
 Adresa: http://127.0.0.1:4174. Zastavení: Ctrl+C.
 Spuštění nejprve vytvoří dist. Po změně zdrojů za běhu spusťte
 node scripts/build.cjs (pro katalog s --catalog) a obnovte prohlížeč.
@@ -45,10 +46,10 @@ holding/index.html       dočasná úvodní stránka
 public/index.html        hlavní obsah, patička a ukázkový formulář
 public/style.css         vzhled
 public/products.js       produkty, ceny, složení, publikace a fotografie
-public/site-config.js    hlavní URL, veřejný kontaktní e-mail a Instagram
+public/site-config.js    hlavní URL, veřejné kontakty, vůně a zálohy na obaly
 public/catalog.js       společné vykreslení katalogu a galerie
 public/gallery.js       přepínání fotografií
-public/app.js           filtrování, sdílení, kontakt a ukázka poptávky
+public/app.js           filtrování, košík, kontakt a ukázka poptávky
 public/inquiry.js       vytvoření textu ukázkové poptávky
 public/assets/products/ fotografie podle ID produktu
 scripts/build.cjs       výběr úvodní stránky nebo katalogu podle prostředí
@@ -58,21 +59,23 @@ Patička se ze šablony index.html přebírá na všechny produktové stránky.
 
 FUNKCE A OMEZENÍ
 Každý produkt má vlastní adresu /produkty/<id>/; obrázek, název i Prohlédnout
-vedou přímo na jeho stránku. Dialog slouží pouze pro ukázku poptávky.
-Tlačítko Kopírovat odkaz zkopíruje adresu produktu; bez přístupu ke schránce
-se nabídne pole pro ruční kopírování. Formulář se při zavření vymaže.
-Katalog i produktové informace fungují bez JavaScriptu. Interaktivní galerie
-a formulář vyžadují JavaScript; bez něj jsou dostupné odkazy na další fotky.
+vedou přímo na jeho stránku. Produkty lze přidávat z detailu s volbou množství
+a případně vůně. Košík uchovává položky a množství
+v aktuální kartě a připraví společný náhled nezávazné poptávky.
+Košík i náhled poptávky uvádějí ceny výrobků, vratné zálohy a celkovou částku.
+Kontaktní údaje se při zavření dialogu vymažou.
+Katalog i produktové informace fungují bez JavaScriptu. Interaktivní galerie,
+košík a formulář vyžadují JavaScript. Odkazy na další fotky fungují i bez něj.
 Není implementované přihlášení, nahrávání fotografií ani administrace.
 Produkty se upravují v products.js a zveřejňují novým nasazením.
-Fotografie autorky ani fotografie skutečných výrobků zatím nebyly dodány.
+Fotografie autorky je v sekci O Adéle. Všech osm výrobků má titulní fotografii.
 Zkušební obrázky použité při ověřování galerie nejsou součástí katalogu.
 
 ZNAČKA A SDÍLENÍ
 Původní logo 150 × 150 px: public/assets/logo.jpg.
+Logo ve vyšším rozlišení z podkladu klientky: public/assets/design/logo.webp.
 Ikony: favicon.ico (16/32/48), favicon-96.png a apple-touch-icon.png (180).
 Technický export ikon: PowerShell scripts/export-icons.ps1.
-Pro kvalitnější zobrazení později použijte logo ve větším rozlišení či SVG.
 Sdílecí obrázek: public/assets/social-card.png (1200 × 630).
 HTML předloha: scripts/social-card.html. Po změně exportujte v prohlížeči
 při 1200 × 630 a uložte skutečný PNG. Vercel tuto grafiku negeneruje.

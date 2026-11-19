@@ -43,7 +43,9 @@ CHOVÁNÍ GALERIE
 - Jedna fotografie -> hlavní fotka, bez zbytečných ovladačů.
 - Více fotografií -> hlavní fotka, náhledy, předchozí/další a počítadlo.
 - Náhledy fungují kliknutím i klávesnicí (šipky vlevo/vpravo, Home/End).
-- Kliknutím na hlavní fotku se otevře plný obrázek v nové kartě.
+- Kliknutím na hlavní fotku ji zvětšíte přes celou obrazovku. Pro návrat
+  použijte křížek, Escape nebo kliknutí do tmavého okraje. Bez JavaScriptu
+  vede fotka přímo na obrázek.
 - Bez JavaScriptu je vidět první fotografie a odkazy na další snímky.
 - Snímky se zobrazují celé, bez automatického ořezu produktu.
 
