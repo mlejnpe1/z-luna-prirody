@@ -2,9 +2,9 @@ Z LŮNA PŘÍRODY
 Statická prezentace značky, katalog a samostatné stránky produktů.
 
 VEŘEJNÝ WEB A NÁHLED
-Větev main nasazuje na https://zlunaprirody.cz/ dočasnou stránku s Instagramem.
+Větev main nasazuje na https://zlunaprirody.cz/ veřejný katalog.
 Do větve preview posílejte úpravy celého webu pro předvedení klientce.
-Vercel ve svém prostředí Preview sestaví katalog. Poptávkový formulář
+Vercel sestaví katalog v prostředí Preview i Production. Poptávkový formulář
 připraví zprávu na kontaktní e-mail a otevře ji v poštovní aplikaci.
 Zprávu odešle zákazník ze své schránky. Pro webmail lze text zkopírovat.
 Přímý e-mail a Instagram v kontaktech zůstávají funkční.
