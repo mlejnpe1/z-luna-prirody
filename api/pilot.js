@@ -149,6 +149,7 @@ function newProduct(id) {
 }
 
 function hasPublishedVersion(id, state) {
+  if (state?.deleted) return false;
   return productById.get(id)?.published ?? Boolean(state?.live?.details);
 }
 
@@ -170,21 +171,26 @@ async function normalizePhoto(encoded) {
 }
 
 function editorState(original, states) {
-  const state = states[original.id] ?? {};
-  const record = state.draft || state.live;
-  const product = productFrom(original, record, Boolean(state.draft));
-  const options = products.map(({ id, name }) => ({ id, name, hidden: Boolean(states[id]?.hidden) }));
+  const options = products.filter(({ id }) => !states[id]?.deleted)
+    .map(({ id, name }) => ({ id, name, hidden: Boolean(states[id]?.hidden) }));
   for (const [id, entry] of Object.entries(states)) {
-    if (productById.has(id)) continue;
+    if (productById.has(id) || entry.deleted) continue;
     const details = (entry.draft || entry.live)?.details;
     if (details) options.push({ id, name: details.name, draftOnly: !entry.live, hidden: Boolean(entry.hidden) });
   }
+  if (!original && options.length) {
+    const [{ id }] = options;
+    original = productById.get(id) || newProduct(id);
+  }
+  const state = states[original?.id] ?? {};
+  const record = state.draft || state.live;
+  const product = original ? productFrom(original, record, Boolean(state.draft)) : null;
   return {
-    products: options, product, editableDetails: !productById.has(original.id),
+    products: options, product, editableDetails: Boolean(original) && !productById.has(original.id),
     choices: { categories, volumes, care: careChoices },
-    deposit: catalog.packagingDeposit(product),
+    deposit: product ? catalog.packagingDeposit(product) : null,
     draft: state.draft?.id || null, current: record?.id || null,
-    hasPublished: hasPublishedVersion(original.id, state), hidden: Boolean(state.hidden),
+    hasPublished: hasPublishedVersion(original?.id, state), hidden: Boolean(state.hidden),
   };
 }
 
@@ -267,6 +273,9 @@ module.exports = async function handler(req, res) {
       return json(res, 200, {});
     }
     const { states, etag } = await readState(storeId, req.method === 'POST');
+    if (req.method === 'GET' && view === 'state' && !searchParams.has('product')) {
+      return json(res, 200, editorState(null, states));
+    }
     const creating = req.method === 'POST' && view === 'create';
     const editingDraft = req.method === 'POST' && (view === 'draft' || creating);
     const details = editingDraft && (creating || !productById.has(productId)) ? productDetails(body) : null;
@@ -279,8 +288,8 @@ module.exports = async function handler(req, res) {
       }
     }
     const original = productById.get(productId) || ((creating || Object.hasOwn(states, productId)) && newProduct(productId));
-    if (!original) return error(res, 404, 'Produkt nebyl nalezen.');
     const state = states[productId] ?? {};
+    if (!original || state.deleted) return error(res, 404, 'Produkt nebyl nalezen.');
     if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(original, states));
     if (req.method === 'GET' && view === 'photo') {
       if (!revisionPattern.test(id) || state.draft?.id !== id) return send(res, 404);
@@ -304,7 +313,17 @@ module.exports = async function handler(req, res) {
       const neverPublished = !productById.has(productId) && !state.live;
       if (neverPublished) delete states[productId];
       await saveState(storeId, states, etag);
-      return json(res, 200, editorState(neverPublished ? productById.get(pilotProductId) : original, states));
+      return json(res, 200, editorState(neverPublished ? null : original, states));
+    }
+    if (req.method === 'POST' && view === 'delete-product') {
+      if (!hasPublishedVersion(productId, state)) return error(res, 409, 'Nezveřejněný produkt odstraníte smazáním konceptu.');
+      if (body?.current !== ((state.draft || state.live)?.id || null)) {
+        return error(res, 409, 'Produkt se změnil. Obnovte stránku a zkontrolujte aktuální verzi.');
+      }
+      // Retire the slug so old links and carts cannot point at a different product.
+      states[productId] = { deleted: true };
+      await saveState(storeId, states, etag);
+      return json(res, 200, editorState(null, states));
     }
     if (editingDraft) {
       const { price, description, ingredients, image, alt, current } = body || {};

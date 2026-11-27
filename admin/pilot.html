@@ -22,12 +22,17 @@
     <div id="product-picker" hidden>
       <label for="product">Produkt</label>
       <select id="product"></select>
-      <button id="add-product" type="button" class="secondary">Přidat produkt</button>
     </div>
     <div id="product-actions" hidden>
-      <p id="product-visibility"></p>
-      <button id="toggle-visibility" type="button" class="secondary">Skrýt produkt</button>
-      <button id="discard-draft" type="button" class="danger" hidden>Smazat koncept</button>
+      <div class="product-action-row" role="group" aria-label="Akce produktu">
+        <button id="add-product" type="button">Přidat produkt</button>
+        <button id="toggle-visibility" type="button" class="warning">Skrýt produkt</button>
+        <button id="delete-product" type="button" class="danger">Smazat produkt</button>
+      </div>
+      <div class="product-action-status">
+        <p id="product-visibility"></p>
+        <button id="discard-draft" type="button" class="danger" hidden>Smazat koncept</button>
+      </div>
     </div>
     <form id="edit" hidden>
       <fieldset id="product-details" hidden disabled>
@@ -68,6 +73,16 @@
       <p id="preview-ingredients"></p>
       <button type="button" id="publish">Zveřejnit tuto verzi na preview</button>
     </section>
+    <dialog id="confirm-action" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+      <form method="dialog">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-message"></p>
+        <div class="confirm-buttons">
+          <button type="submit" value="cancel" class="secondary" autofocus>Zrušit</button>
+          <button id="confirm-submit" type="submit" value="accept"></button>
+        </div>
+      </form>
+    </dialog>
   </main>
 </body>
 </html>

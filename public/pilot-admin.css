@@ -29,11 +29,27 @@ form, section {
 }
 label { display: block; font-weight: 600; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-#product-picker { margin-bottom: 1rem; }
-#add-product { width: 100%; }
 #product-actions { margin-bottom: 1rem; }
-#product-visibility { margin: 0 0 .5rem; }
-#product-actions button { margin: 0 .25rem .35rem 0; }
+.product-action-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+}
+.product-action-row button {
+  min-width: 0;
+  padding: .55rem .4rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.product-action-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem 1rem;
+  margin-top: .65rem;
+}
+#product-visibility { margin: 0; }
+#product-actions button:disabled { cursor: default; }
 .checkbox { display: flex; align-items: center; gap: .55rem; margin-bottom: 1rem; }
 input, textarea, select, button {
   font: inherit;
@@ -57,6 +73,18 @@ button {
   cursor: pointer;
 }
 button.secondary { background: transparent; color: #203f35; }
-button.danger { background: transparent; color: #882c25; border-color: #882c25; }
+button.warning { background: #ffedbf; color: #603600; border-color: #a46c16; }
+button.danger { background: #fae0de; color: #822820; border-color: #a74237; }
 button:disabled { opacity: .55; cursor: wait; }
 img { display: block; width: 100%; border-radius: .5rem; }
+dialog {
+  width: min(28rem, calc(100% - 2rem));
+  padding: 0;
+  border: 0;
+  border-radius: 1rem;
+  color: inherit;
+  background: #fffdf8;
+}
+dialog::backdrop { background: rgb(18 34 28 / .55); }
+dialog h2 { margin-top: 0; }
+.confirm-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; }
