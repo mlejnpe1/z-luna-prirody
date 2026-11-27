@@ -60,8 +60,7 @@ function build() {
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(path.join(directory, 'index.html'), render.product(product));
   }
-  const urls = ['/', ...published.map(catalog.url)].map(url => `<url><loc>${esc(new URL(url, base).href)}</loc></url>`).join('\n');
-  fs.writeFileSync(path.join(output, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
+  fs.writeFileSync(path.join(output, 'sitemap.xml'), render.sitemap(published));
   fs.writeFileSync(path.join(output, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${new URL('/sitemap.xml', base).href}\n`);
   if (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_GIT_COMMIT_REF === 'preview') {
     const decoder = require.resolve('heic-to/csp');
@@ -181,9 +180,14 @@ ${head(base, `${product.name} · ${product.volume} | Z lůna přírody`, product
 </main>${footer}${dialogs}${scripts}</body></html>`;
 }
 
-function createRenderer(base) {
-  return { home: home.bind(null, base), privacy: privacy.bind(null, base), product: productPage.bind(null, base) };
+function sitemap(base, published) {
+  const urls = ['/', ...published.map(catalog.url)].map(url => `<url><loc>${esc(new URL(url, base).href)}</loc></url>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
-module.exports = { build, createRenderer, products, catalog };
+function createRenderer(base) {
+  return { home: home.bind(null, base), privacy: privacy.bind(null, base), product: productPage.bind(null, base), sitemap: sitemap.bind(null, base) };
+}
+
+module.exports = { build, createRenderer, products, catalog, config };
 if (require.main === module) build();

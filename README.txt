@@ -69,9 +69,11 @@ Košík i zpráva uvádějí ceny výrobků, vratné zálohy a celkovou částku
 Kontaktní údaje se při zavření dialogu vymažou.
 Katalog i produktové informace fungují bez JavaScriptu. Interaktivní galerie,
 košík a formulář vyžadují JavaScript. Odkazy na další fotky fungují i bez něj.
-Správa všech osmi produktů je na https://preview.zlunaprirody.cz/admin.
+Správa produktů je na https://preview.zlunaprirody.cz/admin.
 Po výběru produktu lze uložit cenu, popis, složení a titulní fotku do
 soukromého konceptu a po kontrole náhledu zveřejnit jeho konkrétní revizi.
+Tlačítko Přidat produkt založí nejdřív soukromý koncept. Adresa se vytvoří
+z prvního názvu a pozdější přejmenování ji nemění.
 Pro pilot patří ZLP_PILOT_STORE_ID a ZLP_PILOT_ADMIN_HASH výhradně do
 prostředí Preview. Úložiště musí být privátní a připojené přes Vercel OIDC.
 ZLP_PILOT_ADMIN_HASH je SHA-256 strojově vygenerovaného dlouhého hesla,

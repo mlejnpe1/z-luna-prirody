@@ -4,13 +4,20 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { get, head, put, BlobNotFoundError, BlobPreconditionFailedError } = require('@vercel/blob');
 const sharp = require('sharp');
-const { createRenderer, products, catalog } = require('../scripts/build-catalog.cjs');
+const { createRenderer, products, catalog, config } = require('../scripts/build-catalog.cjs');
 
 const host = 'preview.zlunaprirody.cz';
 const origin = `https://${host}`;
 const renderer = createRenderer(new URL(origin));
 const productById = new Map(products.map(product => [product.id, product]));
-const productOptions = products.map(({ id, name }) => ({ id, name }));
+const categories = [...new Set(products.map(product => product.category))];
+const volumes = Object.keys(config.packagingDeposits);
+const careChoices = [
+  { value: 'skin', label: 'Pokožka', art: 'lavender' },
+  { value: 'body', label: 'Tělo', art: 'butter' },
+  { value: 'hair', label: 'Vlasy', art: 'oil' },
+  { value: 'lips-nails', label: 'Rty a nehty', art: 'lips' },
+];
 const pilotProductId = 'levandulova-mast';
 const statePath = `${pilotProductId}/state.json`;
 const cookieName = '__Host-zlp-pilot';
@@ -66,11 +73,12 @@ async function readState(storeId, forWrite = false) {
   }
   const blob = await get(statePath, { access: 'private', storeId, useCache: false });
   if (forWrite && Boolean(blob) !== Boolean(etag)) throw new BlobPreconditionFailedError();
-  if (!blob) return { states: {}, etag: null };
+  if (!blob) return { states: Object.create(null), etag: null };
   if (blob.statusCode !== 200) throw new Error('Unexpected Blob response');
   const stored = await new Response(blob.stream).json();
   // The original pilot stored one product directly at this same pathname.
-  return { states: stored.products ?? { [pilotProductId]: stored }, etag };
+  const states = Object.assign(Object.create(null), stored.products ?? { [pilotProductId]: stored });
+  return { states, etag };
 }
 
 function photoPath(productId, photo) {
@@ -110,13 +118,34 @@ async function saveState(storeId, states, etag) {
 
 function productFrom(original, record, draft = false) {
   if (!record) return original;
-  const { id, price, description, ingredients, photo, image, alt } = record;
+  const { id, price, description, ingredients, photo, image, alt, details } = record;
   const originals = original.photos || [];
   const photos = photo || image ? [{
     src: draft ? `/api/pilot?view=photo&product=${original.id}&id=${id}` : `/pilot-media/${id}.webp`,
     alt,
   }, ...originals.slice(1)] : originals;
-  return { ...original, price, description, ingredients, photos };
+  return { ...original, ...details, price, description, ingredients, photos };
+}
+
+function validText(value, limit) {
+  return typeof value === 'string' && value.length <= limit && value.trim().length > 0;
+}
+
+function productDetails(input) {
+  const { name, category, volume, care, scentChoice } = input || {};
+  const choice = careChoices.find(item => item.value === care);
+  if (!validText(name, 80) || !categories.includes(category) || !volumes.includes(volume) ||
+      !choice || typeof scentChoice !== 'boolean') return null;
+  return { name: name.trim(), category, volume, care, scentChoice, art: choice.art };
+}
+
+function productSlug(name) {
+  return name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function newProduct(id) {
+  return { id, published: true, photos: [] };
 }
 
 async function normalizePhoto(encoded) {
@@ -132,11 +161,20 @@ async function normalizePhoto(encoded) {
   }
 }
 
-function editorState(original, state) {
+function editorState(original, states) {
+  const state = states[original.id] ?? {};
   const record = state.draft || state.live;
+  const product = productFrom(original, record, Boolean(state.draft));
+  const options = products.map(({ id, name }) => ({ id, name }));
+  for (const [id, entry] of Object.entries(states)) {
+    if (productById.has(id)) continue;
+    const details = (entry.draft || entry.live)?.details;
+    if (details) options.push({ id, name: details.name, draftOnly: !entry.live });
+  }
   return {
-    products: productOptions, product: productFrom(original, record, Boolean(state.draft)),
-    deposit: catalog.packagingDeposit(original),
+    products: options, product, editableDetails: !productById.has(original.id),
+    choices: { categories, volumes, care: careChoices },
+    deposit: catalog.packagingDeposit(product),
     draft: state.draft?.id || null, current: record?.id || null,
   };
 }
@@ -149,25 +187,31 @@ async function sendPhoto(res, storeId, productId, record) {
   return send(res, 200, Buffer.from(await new Response(blob.stream).arrayBuffer()), 'image/webp');
 }
 
-function renderPublic(view, res, storeId, states, original, id) {
+function renderPublic(view, res, storeId, states, productId, id) {
   if (view === 'media') {
     if (!revisionPattern.test(id)) return send(res, 404);
-    for (const { id: productId } of products) {
-      const state = states[productId];
+    for (const [itemId, state] of Object.entries(states)) {
       const record = [state?.live, state?.previous].find(version => version?.id === id);
-      if (record) return sendPhoto(res, storeId, productId, record);
+      if (record) return sendPhoto(res, storeId, itemId, record);
     }
     return send(res, 404);
   }
   if (view === 'product') {
+    const live = states[productId]?.live;
+    const original = productById.get(productId) || (live?.details && newProduct(productId));
     if (!original?.published) return send(res, 404);
-    return send(res, 200, renderer.product(productFrom(original, states[original.id]?.live)), 'text/html; charset=utf-8');
+    return send(res, 200, renderer.product(productFrom(original, live)), 'text/html; charset=utf-8');
   }
   const list = products.map(item => productFrom(item, states[item.id]?.live));
+  for (const [itemId, state] of Object.entries(states)) {
+    if (!productById.has(itemId) && state.live?.details) list.push(productFrom(newProduct(itemId), state.live));
+  }
   if (view === 'products') {
     return send(res, 200, `'use strict';\nconst products = ${JSON.stringify(list)};\n`, 'text/javascript; charset=utf-8');
   }
-  return send(res, 200, renderer.home(list.filter(item => item.published)), 'text/html; charset=utf-8');
+  const published = list.filter(item => item.published);
+  if (view === 'sitemap') return send(res, 200, renderer.sitemap(published), 'application/xml; charset=utf-8');
+  return send(res, 200, renderer.home(published), 'text/html; charset=utf-8');
 }
 
 module.exports = async function handler(req, res) {
@@ -179,15 +223,15 @@ module.exports = async function handler(req, res) {
   const { searchParams } = new URL(req.url, origin);
   const view = searchParams.get('view');
   const id = searchParams.get('id');
-  const original = productById.get(searchParams.get('product') ?? pilotProductId);
+  let productId = searchParams.get('product') ?? pilotProductId;
   const storeId = process.env.ZLP_PILOT_STORE_ID;
   const key = process.env.ZLP_PILOT_ADMIN_HASH;
   const ready = Boolean(storeId) && /^[a-f0-9]{64}$/.test(key);
 
   try {
-    if (req.method === 'GET' && ['home', 'product', 'products', 'media'].includes(view)) {
-      const { states } = ready ? await readState(storeId) : { states: {} };
-      return await renderPublic(view, res, storeId, states, original, id);
+    if (req.method === 'GET' && ['home', 'product', 'products', 'media', 'sitemap'].includes(view)) {
+      const { states } = ready ? await readState(storeId) : { states: Object.create(null) };
+      return await renderPublic(view, res, storeId, states, productId, id);
     }
     if (req.method === 'GET' && view === 'admin') {
       res.setHeader('X-Robots-Tag', 'noindex');
@@ -212,40 +256,54 @@ module.exports = async function handler(req, res) {
       setSession(res);
       return json(res, 200, {});
     }
-    if (!original) return error(res, 404, 'Produkt nebyl nalezen.');
     const { states, etag } = await readState(storeId, req.method === 'POST');
-    const state = states[original.id] ?? {};
-    if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(original, state));
+    const creating = req.method === 'POST' && view === 'create';
+    const editingDraft = req.method === 'POST' && (view === 'draft' || creating);
+    const details = editingDraft && (creating || !productById.has(productId)) ? productDetails(body) : null;
+    if (creating) {
+      if (!details) return error(res, 400, 'Vyplňte název, kategorii, péči a objem.');
+      productId = productSlug(details.name);
+      if (!productId) return error(res, 400, 'Název musí obsahovat písmeno nebo číslici pro adresu produktu.');
+      if (productById.has(productId) || Object.hasOwn(states, productId)) {
+        return error(res, 409, 'Produkt s touto adresou už existuje. Zvolte odlišný název.');
+      }
+    }
+    const original = productById.get(productId) || ((creating || Object.hasOwn(states, productId)) && newProduct(productId));
+    if (!original) return error(res, 404, 'Produkt nebyl nalezen.');
+    const state = states[productId] ?? {};
+    if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(original, states));
     if (req.method === 'GET' && view === 'photo') {
       if (!revisionPattern.test(id) || state.draft?.id !== id) return send(res, 404);
       return await sendPhoto(res, storeId, original.id, state.draft);
     }
-    if (req.method === 'POST' && view === 'draft') {
+    if (editingDraft) {
       const { price, description, ingredients, image, alt, current } = body || {};
       const prior = state.draft || state.live;
       if (current !== (prior?.id || null)) return error(res, 409, 'Katalog se změnil. Obnovte stránku a zkontrolujte aktuální verzi.');
-      const validText = value => typeof value === 'string' && value.length <= 2000 && value.trim().length > 0;
-      if (!Number.isInteger(price) || price < 1 || price > 10000 || !validText(description) || !validText(ingredients) ||
-          (image !== null && (typeof alt !== 'string' || !alt.trim() || alt.length > 150))) {
+      if (!productById.has(productId) && !details) return error(res, 400, 'Vyplňte název, kategorii, péči a objem.');
+      if (!Number.isInteger(price) || price < 1 || price > 10000 || !validText(description, 2000) ||
+          !validText(ingredients, 2000) || (image !== null && !validText(alt, 150))) {
         return error(res, 400, 'Zkontrolujte cenu, popis, složení a formát fotografie.');
       }
       const bytes = image === null ? null : await normalizePhoto(image);
       if (image !== null && !bytes) return error(res, 400, 'Fotografii nelze zpracovat. Vyberte jiný snímek.');
       const photo = bytes ? await storePhoto(storeId, original.id, bytes) : prior?.photo || null;
       state.draft = { id: randomUUID(), price, description: description.trim(), ingredients: ingredients.trim(),
-        photo, image: bytes ? null : prior?.image || null, alt: bytes ? alt.trim() : prior?.alt || null };
+        photo, image: bytes ? null : prior?.image || null, alt: bytes ? alt.trim() : prior?.alt || null,
+        ...(details && { details }),
+      };
       states[original.id] = state;
       await saveState(storeId, states, etag);
-      return json(res, 200, editorState(original, state));
+      return json(res, 200, editorState(original, states));
     }
     if (req.method === 'POST' && view === 'publish') {
-      if (body?.id && state.live?.id === body.id && !state.draft) return json(res, 200, editorState(original, state));
+      if (body?.id && state.live?.id === body.id && !state.draft) return json(res, 200, editorState(original, states));
       if (!body?.id || state.draft?.id !== body.id) return error(res, 409, 'Nejdřív otevřete náhled aktuálního konceptu.');
       state.previous = state.live || null;
       state.live = state.draft;
       state.draft = null;
       await saveState(storeId, states, etag);
-      return json(res, 200, editorState(original, state));
+      return json(res, 200, editorState(original, states));
     }
     return send(res, 404);
   } catch (failure) {

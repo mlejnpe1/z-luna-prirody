@@ -20,6 +20,7 @@
     { "src": "^/(?:index\\.html)?$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=home" },
     { "src": "^/produkty/([a-z0-9-]+)(?:/|/index\\.html)?$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=product&product=$1" },
     { "src": "^/products\\.js$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=products" },
+    { "src": "^/sitemap\\.xml$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=sitemap" },
     { "src": "^/pilot-media/([a-f0-9-]{36})\\.webp$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=media&id=$1" },
     { "handle": "filesystem" }
   ]

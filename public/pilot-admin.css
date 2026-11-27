@@ -28,6 +28,10 @@ form, section {
   padding: 1rem;
 }
 label { display: block; font-weight: 600; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+#product-picker { margin-bottom: 1rem; }
+#add-product { width: 100%; }
+.checkbox { display: flex; align-items: center; gap: .55rem; margin-bottom: 1rem; }
 input, textarea, select, button {
   font: inherit;
   color: inherit;
@@ -41,6 +45,7 @@ input, textarea, select {
   background: #fff;
   margin: .25rem 0 1rem;
 }
+.checkbox input { width: auto; min-height: auto; margin: 0; }
 button {
   background: #203f35;
   color: #fff;

@@ -4,6 +4,9 @@ const edit = field('edit');
 const logout = field('logout');
 const picker = field('product');
 const pickerGroup = field('product-picker');
+const add = field('add-product');
+const cancelNew = field('cancel-new');
+const details = field('product-details');
 const preview = field('preview');
 const publish = field('publish');
 const status = field('status');
@@ -11,6 +14,7 @@ const publishFields = ['price', 'description', 'ingredients'];
 const currency = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
 let revision;
 let activeProduct;
+let creating = false;
 let dirty = false;
 let pending = false;
 
@@ -28,19 +32,39 @@ async function request(view, body, product = activeProduct) {
 function showLogin() {
   login.hidden = false;
   edit.hidden = logout.hidden = preview.hidden = pickerGroup.hidden = true;
+  picker.replaceChildren();
+  edit.reset();
   field('preview-photo').removeAttribute('src');
+  for (const key of ['name', 'details', 'price', 'description', 'ingredients']) field(`preview-${key}`).textContent = '';
 }
 
-function render({ products, product, deposit, draft, current }) {
+function fillChoices(id, choices) {
+  const select = field(id);
+  if (select.options.length) return;
+  select.replaceChildren(new Option('Vyberte…', ''), ...choices.map(({ value, label }) => new Option(label, value)));
+}
+
+function allowDetails(visible) {
+  details.hidden = details.disabled = !visible;
+}
+
+function render({ products, product, deposit, draft, current, editableDetails, choices }) {
   activeProduct = product.id;
   revision = current;
+  creating = false;
   dirty = false;
-  if (!picker.options.length) {
-    picker.replaceChildren(...products.map(({ id, name }) => new Option(name, id)));
-  }
+  picker.replaceChildren(...products.map(({ id, name, draftOnly }) =>
+    new Option(draftOnly ? `${name} (koncept)` : name, id)));
+  fillChoices('category', choices.categories.map(value => ({ label: value, value })));
+  fillChoices('volume', choices.volumes.map(value => ({ label: value, value })));
+  fillChoices('care', choices.care);
   picker.value = activeProduct;
   login.hidden = true;
   edit.hidden = logout.hidden = pickerGroup.hidden = false;
+  cancelNew.hidden = true;
+  allowDetails(editableDetails);
+  for (const key of ['name', 'category', 'volume', 'care']) field(key).value = product[key];
+  field('scent-choice').checked = Boolean(product.scentChoice);
   for (const key of publishFields) field(key).value = product[key];
   field('photo').value = '';
   syncPhotoDescription();
@@ -56,6 +80,7 @@ function render({ products, product, deposit, draft, current }) {
     image.alt = '';
   }
   field('preview-name').textContent = product.name;
+  field('preview-details').textContent = `${product.category} · ${product.volume}`;
   field('preview-price').textContent = `${currency.format(product.price)} + ${currency.format(deposit)} záloha za obal`;
   field('preview-description').textContent = product.description;
   field('preview-ingredients').textContent = product.ingredients;
@@ -81,7 +106,7 @@ async function load() {
 async function action(control, callback) {
   if (pending) return;
   pending = true;
-  const controls = [control, picker, logout];
+  const controls = [control, picker, logout, add, cancelNew];
   controls.forEach(item => { item.disabled = true; });
   try {
     await callback();
@@ -140,24 +165,55 @@ login.addEventListener('submit', event => {
 
 logout.addEventListener('click', () => action(logout, async () => {
   await request('logout', {});
-  edit.reset();
   revision = undefined;
   activeProduct = undefined;
+  creating = false;
   dirty = false;
   showLogin();
   status.textContent = 'Odhlášeno.';
 }));
 
+function confirmSwitch() {
+  return !dirty || window.confirm('Zahodit neuložené úpravy formuláře?');
+}
+
+async function switchProduct(id) {
+  edit.inert = true;
+  preview.inert = true;
+  try {
+    render(await request('state', undefined, id));
+    status.textContent = '';
+  } finally {
+    edit.inert = false;
+    preview.inert = false;
+  }
+}
+
+add.addEventListener('click', () => {
+  if (pending || creating || !confirmSwitch()) return;
+  creating = true;
+  dirty = false;
+  revision = null;
+  picker.selectedIndex = -1;
+  edit.reset();
+  syncPhotoDescription();
+  allowDetails(true);
+  cancelNew.hidden = false;
+  preview.hidden = true;
+  field('preview-photo').removeAttribute('src');
+  status.textContent = '';
+  field('name').focus();
+});
+
+cancelNew.addEventListener('click', () => {
+  if (confirmSwitch()) action(cancelNew, () => switchProduct(activeProduct));
+});
+
 picker.addEventListener('change', () => {
   const selected = picker.value;
-  if (selected === activeProduct) return;
-  picker.value = activeProduct;
-  if (dirty && !window.confirm('Přepnout na jiný produkt a zahodit neuložené úpravy formuláře?')) return;
-  action(picker, async () => {
-    const next = await request('state', undefined, selected);
-    render(next);
-    status.textContent = '';
-  });
+  if (!creating && selected === activeProduct) return;
+  picker.value = creating ? '' : activeProduct;
+  if (confirmSwitch()) action(picker, () => switchProduct(selected));
 });
 
 field('photo').addEventListener('change', syncPhotoDescription);
@@ -168,14 +224,19 @@ edit.addEventListener('submit', event => {
     price: field('price').valueAsNumber, description: field('description').value,
     ingredients: field('ingredients').value, alt: field('alt').value, current: revision,
   };
+  if (!details.disabled) {
+    for (const key of ['name', 'category', 'volume', 'care']) values[key] = field(key).value;
+    values.scentChoice = field('scent-choice').checked;
+  }
+  const view = creating ? 'create' : 'draft';
   const file = field('photo').files[0];
   action(event.submitter, async () => {
-    const fields = [...edit.elements].filter(control => control !== event.submitter);
+    const fields = [...edit.elements].filter(control => control !== event.submitter && !control.disabled);
     fields.forEach(control => { control.disabled = true; });
     try {
       status.textContent = file ? 'Připravuji fotku…' : 'Ukládám koncept…';
       const image = await preparePhoto(file);
-      render(await request('draft', { ...values, image }));
+      render(await request(view, { ...values, image }));
       status.textContent = 'Koncept uložen.';
       preview.scrollIntoView({ block: 'start' });
     } finally {

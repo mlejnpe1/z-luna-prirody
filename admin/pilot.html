@@ -22,8 +22,22 @@
     <div id="product-picker" hidden>
       <label for="product">Produkt</label>
       <select id="product"></select>
+      <button id="add-product" type="button" class="secondary">Přidat produkt</button>
     </div>
     <form id="edit" hidden>
+      <fieldset id="product-details" hidden disabled>
+        <label for="name">Název produktu</label>
+        <input id="name" maxlength="80" required>
+        <label for="category">Kategorie</label>
+        <select id="category" required></select>
+        <label for="care">Druh péče</label>
+        <select id="care" required></select>
+        <label for="volume">Objem obalu</label>
+        <select id="volume" required></select>
+        <label class="checkbox" for="scent-choice">
+          <input id="scent-choice" type="checkbox"> Nabídnout výběr vůně
+        </label>
+      </fieldset>
       <label for="price">Cena v Kč</label>
       <input id="price" type="number" inputmode="numeric" min="1" max="10000" required>
       <label for="description">Popis</label>
@@ -35,12 +49,14 @@
       <label for="alt" id="alt-label" hidden>Krátký popis nové fotky</label>
       <input id="alt" maxlength="150" hidden>
       <button>Uložit koncept a zobrazit náhled</button>
+      <button id="cancel-new" type="button" class="secondary" hidden>Zrušit přidání</button>
     </form>
     <p id="status" role="status">Načítám…</p>
     <section id="preview" hidden>
       <h2>Soukromý náhled</h2>
       <img id="preview-photo" alt="">
       <h3 id="preview-name"></h3>
+      <p id="preview-details"></p>
       <p id="preview-price"></p>
       <p id="preview-description"></p>
       <h3>Složení</h3>
