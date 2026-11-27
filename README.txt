@@ -74,6 +74,8 @@ Po výběru produktu lze uložit cenu, popis, složení a titulní fotku do
 soukromého konceptu a po kontrole náhledu zveřejnit jeho konkrétní revizi.
 Tlačítko Přidat produkt založí nejdřív soukromý koncept. Adresa se vytvoří
 z prvního názvu a pozdější přejmenování ji nemění.
+Skrytý produkt zmizí z nabídky a lze znovu zobrazit jeho poslední
+potvrzenou verzi. Smazání konceptu odstraní pouze rozepsanou verzi.
 Pro pilot patří ZLP_PILOT_STORE_ID a ZLP_PILOT_ADMIN_HASH výhradně do
 prostředí Preview. Úložiště musí být privátní a připojené přes Vercel OIDC.
 ZLP_PILOT_ADMIN_HASH je SHA-256 strojově vygenerovaného dlouhého hesla,

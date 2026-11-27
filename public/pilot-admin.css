@@ -31,6 +31,9 @@ label { display: block; font-weight: 600; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 #product-picker { margin-bottom: 1rem; }
 #add-product { width: 100%; }
+#product-actions { margin-bottom: 1rem; }
+#product-visibility { margin: 0 0 .5rem; }
+#product-actions button { margin: 0 .25rem .35rem 0; }
 .checkbox { display: flex; align-items: center; gap: .55rem; margin-bottom: 1rem; }
 input, textarea, select, button {
   font: inherit;
@@ -54,5 +57,6 @@ button {
   cursor: pointer;
 }
 button.secondary { background: transparent; color: #203f35; }
+button.danger { background: transparent; color: #882c25; border-color: #882c25; }
 button:disabled { opacity: .55; cursor: wait; }
 img { display: block; width: 100%; border-radius: .5rem; }

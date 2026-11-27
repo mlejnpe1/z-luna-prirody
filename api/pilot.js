@@ -148,6 +148,14 @@ function newProduct(id) {
   return { id, published: true, photos: [] };
 }
 
+function hasPublishedVersion(id, state) {
+  return productById.get(id)?.published ?? Boolean(state?.live?.details);
+}
+
+function isVisible(id, state) {
+  return hasPublishedVersion(id, state) && !state?.hidden;
+}
+
 async function normalizePhoto(encoded) {
   if (typeof encoded !== 'string' || encoded.length > 1_800_000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) return null;
   const bytes = Buffer.from(encoded, 'base64');
@@ -165,17 +173,18 @@ function editorState(original, states) {
   const state = states[original.id] ?? {};
   const record = state.draft || state.live;
   const product = productFrom(original, record, Boolean(state.draft));
-  const options = products.map(({ id, name }) => ({ id, name }));
+  const options = products.map(({ id, name }) => ({ id, name, hidden: Boolean(states[id]?.hidden) }));
   for (const [id, entry] of Object.entries(states)) {
     if (productById.has(id)) continue;
     const details = (entry.draft || entry.live)?.details;
-    if (details) options.push({ id, name: details.name, draftOnly: !entry.live });
+    if (details) options.push({ id, name: details.name, draftOnly: !entry.live, hidden: Boolean(entry.hidden) });
   }
   return {
     products: options, product, editableDetails: !productById.has(original.id),
     choices: { categories, volumes, care: careChoices },
     deposit: catalog.packagingDeposit(product),
     draft: state.draft?.id || null, current: record?.id || null,
+    hasPublished: hasPublishedVersion(original.id, state), hidden: Boolean(state.hidden),
   };
 }
 
@@ -191,27 +200,28 @@ function renderPublic(view, res, storeId, states, productId, id) {
   if (view === 'media') {
     if (!revisionPattern.test(id)) return send(res, 404);
     for (const [itemId, state] of Object.entries(states)) {
+      if (!isVisible(itemId, state)) continue;
       const record = [state?.live, state?.previous].find(version => version?.id === id);
       if (record) return sendPhoto(res, storeId, itemId, record);
     }
     return send(res, 404);
   }
   if (view === 'product') {
-    const live = states[productId]?.live;
-    const original = productById.get(productId) || (live?.details && newProduct(productId));
-    if (!original?.published) return send(res, 404);
-    return send(res, 200, renderer.product(productFrom(original, live)), 'text/html; charset=utf-8');
+    const state = states[productId];
+    if (!isVisible(productId, state)) return send(res, 404);
+    const original = productById.get(productId) || newProduct(productId);
+    return send(res, 200, renderer.product(productFrom(original, state?.live)), 'text/html; charset=utf-8');
   }
-  const list = products.map(item => productFrom(item, states[item.id]?.live));
+  const list = products.filter(item => isVisible(item.id, states[item.id]))
+    .map(item => productFrom(item, states[item.id]?.live));
   for (const [itemId, state] of Object.entries(states)) {
-    if (!productById.has(itemId) && state.live?.details) list.push(productFrom(newProduct(itemId), state.live));
+    if (!productById.has(itemId) && isVisible(itemId, state)) list.push(productFrom(newProduct(itemId), state.live));
   }
   if (view === 'products') {
     return send(res, 200, `'use strict';\nconst products = ${JSON.stringify(list)};\n`, 'text/javascript; charset=utf-8');
   }
-  const published = list.filter(item => item.published);
-  if (view === 'sitemap') return send(res, 200, renderer.sitemap(published), 'application/xml; charset=utf-8');
-  return send(res, 200, renderer.home(published), 'text/html; charset=utf-8');
+  if (view === 'sitemap') return send(res, 200, renderer.sitemap(list), 'application/xml; charset=utf-8');
+  return send(res, 200, renderer.home(list), 'text/html; charset=utf-8');
 }
 
 module.exports = async function handler(req, res) {
@@ -275,6 +285,26 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET' && view === 'photo') {
       if (!revisionPattern.test(id) || state.draft?.id !== id) return send(res, 404);
       return await sendPhoto(res, storeId, original.id, state.draft);
+    }
+    if (req.method === 'POST' && view === 'visibility') {
+      if (typeof body?.hidden !== 'boolean') return error(res, 400, 'Zadejte viditelnost produktu.');
+      if (!hasPublishedVersion(productId, state)) return error(res, 409, 'Produkt zatím nemá zveřejněnou verzi.');
+      if (body.current !== ((state.draft || state.live)?.id || null)) {
+        return error(res, 409, 'Produkt se změnil. Obnovte stránku a zkontrolujte aktuální verzi.');
+      }
+      if (Boolean(state.hidden) === body.hidden) return json(res, 200, editorState(original, states));
+      state.hidden = body.hidden;
+      states[productId] = state;
+      await saveState(storeId, states, etag);
+      return json(res, 200, editorState(original, states));
+    }
+    if (req.method === 'POST' && view === 'discard') {
+      if (!body?.id || state.draft?.id !== body.id) return error(res, 409, 'Koncept se změnil nebo už byl odstraněn.');
+      delete state.draft;
+      const neverPublished = !productById.has(productId) && !state.live;
+      if (neverPublished) delete states[productId];
+      await saveState(storeId, states, etag);
+      return json(res, 200, editorState(neverPublished ? productById.get(pilotProductId) : original, states));
     }
     if (editingDraft) {
       const { price, description, ingredients, image, alt, current } = body || {};

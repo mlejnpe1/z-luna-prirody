@@ -6,6 +6,9 @@ const picker = field('product');
 const pickerGroup = field('product-picker');
 const add = field('add-product');
 const cancelNew = field('cancel-new');
+const productActions = field('product-actions');
+const visibility = field('toggle-visibility');
+const discard = field('discard-draft');
 const details = field('product-details');
 const preview = field('preview');
 const publish = field('publish');
@@ -14,6 +17,9 @@ const publishFields = ['price', 'description', 'ingredients'];
 const currency = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
 let revision;
 let activeProduct;
+let savedDraft;
+let productHidden = false;
+let hasPublishedVersion = false;
 let creating = false;
 let dirty = false;
 let pending = false;
@@ -31,7 +37,7 @@ async function request(view, body, product = activeProduct) {
 
 function showLogin() {
   login.hidden = false;
-  edit.hidden = logout.hidden = preview.hidden = pickerGroup.hidden = true;
+  edit.hidden = logout.hidden = preview.hidden = pickerGroup.hidden = productActions.hidden = true;
   picker.replaceChildren();
   edit.reset();
   field('preview-photo').removeAttribute('src');
@@ -48,17 +54,34 @@ function allowDetails(visible) {
   details.hidden = details.disabled = !visible;
 }
 
-function render({ products, product, deposit, draft, current, editableDetails, choices }) {
+function renderActions({ products, draft, hasPublished, hidden }) {
+  savedDraft = draft;
+  productHidden = hidden;
+  hasPublishedVersion = hasPublished;
+  picker.replaceChildren(...products.map(({ id, name, draftOnly, hidden: optionHidden }) => {
+    const label = optionHidden ? ' (skrytý)' : draftOnly ? ' (koncept)' : '';
+    return new Option(name + label, id);
+  }));
+  picker.value = activeProduct;
+  productActions.hidden = false;
+  field('product-visibility').textContent = hidden ? 'Skrytý na preview' :
+    hasPublished ? 'Zobrazený na preview' : 'Nezveřejněný koncept';
+  visibility.hidden = !hasPublished;
+  visibility.textContent = hidden ? 'Znovu zobrazit produkt' : 'Skrýt produkt';
+  discard.hidden = !draft;
+  publish.textContent = hidden ? 'Uložit verzi skrytého produktu' : 'Zveřejnit tuto verzi na preview';
+}
+
+function render(data) {
+  const { product, deposit, draft, current, editableDetails, choices } = data;
   activeProduct = product.id;
   revision = current;
   creating = false;
   dirty = false;
-  picker.replaceChildren(...products.map(({ id, name, draftOnly }) =>
-    new Option(draftOnly ? `${name} (koncept)` : name, id)));
+  renderActions(data);
   fillChoices('category', choices.categories.map(value => ({ label: value, value })));
   fillChoices('volume', choices.volumes.map(value => ({ label: value, value })));
   fillChoices('care', choices.care);
-  picker.value = activeProduct;
   login.hidden = true;
   edit.hidden = logout.hidden = pickerGroup.hidden = false;
   cancelNew.hidden = true;
@@ -106,7 +129,7 @@ async function load() {
 async function action(control, callback) {
   if (pending) return;
   pending = true;
-  const controls = [control, picker, logout, add, cancelNew];
+  const controls = [control, picker, logout, add, cancelNew, visibility, discard, publish];
   controls.forEach(item => { item.disabled = true; });
   try {
     await callback();
@@ -178,14 +201,12 @@ function confirmSwitch() {
 }
 
 async function switchProduct(id) {
-  edit.inert = true;
-  preview.inert = true;
+  edit.inert = preview.inert = productActions.inert = true;
   try {
     render(await request('state', undefined, id));
     status.textContent = '';
   } finally {
-    edit.inert = false;
-    preview.inert = false;
+    edit.inert = preview.inert = productActions.inert = false;
   }
 }
 
@@ -199,7 +220,7 @@ add.addEventListener('click', () => {
   syncPhotoDescription();
   allowDetails(true);
   cancelNew.hidden = false;
-  preview.hidden = true;
+  preview.hidden = productActions.hidden = true;
   field('preview-photo').removeAttribute('src');
   status.textContent = '';
   field('name').focus();
@@ -214,6 +235,34 @@ picker.addEventListener('change', () => {
   if (!creating && selected === activeProduct) return;
   picker.value = creating ? '' : activeProduct;
   if (confirmSwitch()) action(picker, () => switchProduct(selected));
+});
+
+visibility.addEventListener('click', () => {
+  const hidden = !productHidden;
+  const prompt = hidden ? 'Skrýt produkt na preview? Později ho můžete znovu zobrazit.' :
+    'Zobrazit na preview poslední zveřejněnou verzi produktu?';
+  if (!window.confirm(prompt)) return;
+  action(visibility, async () => {
+    const data = await request('visibility', { current: revision, hidden });
+    if (dirty) renderActions(data);
+    else render(data);
+    status.textContent = hidden ? 'Produkt byl skrytý na preview.' : 'Produkt se znovu zobrazuje na preview.';
+  });
+});
+
+discard.addEventListener('click', () => {
+  const prompt = hasPublishedVersion ? 'Smazat koncept a neuložené úpravy? Poslední zveřejněná verze zůstane uložená.' :
+    'Smazat koncept nového produktu i případné neuložené úpravy? Tuto akci nelze vrátit.';
+  if (!window.confirm(prompt)) return;
+  action(discard, async () => {
+    edit.inert = true;
+    try {
+      render(await request('discard', { id: savedDraft }));
+      status.textContent = 'Koncept byl smazaný.';
+    } finally {
+      edit.inert = false;
+    }
+  });
 });
 
 field('photo').addEventListener('change', syncPhotoDescription);
@@ -249,9 +298,14 @@ publish.addEventListener('click', () => action(publish, async () => {
   const approved = revision;
   const data = await request('publish', { id: approved });
   // Případné další rozepsané hodnoty v otevřeném formuláři ponecháme.
-  revision = data.current;
+  if (dirty) {
+    revision = data.current;
+    renderActions(data);
+  } else {
+    render(data);
+  }
   preview.hidden = true;
-  status.textContent = 'Verze je zveřejněná na preview.';
+  status.textContent = data.hidden ? 'Verze je uložená. Produkt zůstává skrytý.' : 'Verze je zveřejněná na preview.';
 }));
 
 load();
