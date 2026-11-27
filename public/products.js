@@ -6,7 +6,7 @@ const products = [
     "id": "levandulova-mast",
     "name": "Levandulová mast",
     "category": "Masti",
-    "price": 220,
+    "price": 225,
     "volume": "50 ml",
     "art": "lavender",
     "care": "skin",
@@ -14,6 +14,10 @@ const products = [
     "ingredients": "Kokosový olej, bambucké máslo, včelí vosk, sušená levandule, řebříček, přírodní konzervanty.",
     "published": true,
     "photos": [
+      {
+        "src": "/assets/products/levandulova-mast/pilot-0b3ce0d31360.webp",
+        "alt": "Zkušební snímek pilotu"
+      },
       {
         "src": "/assets/products/levandulova-mast/levandulova-mast.jpg",
         "alt": "Otevřený kelímek levandulové masti se dvěma snítkami levandule"
