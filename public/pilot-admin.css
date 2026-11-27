@@ -28,13 +28,13 @@ form, section {
   padding: 1rem;
 }
 label { display: block; font-weight: 600; }
-input, textarea, button {
+input, textarea, select, button {
   font: inherit;
   color: inherit;
   min-height: 2.75rem;
   border-radius: .5rem;
 }
-input, textarea {
+input, textarea, select {
   width: 100%;
   padding: .6rem;
   border: 1px solid #9aaba1;

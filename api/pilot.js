@@ -9,8 +9,10 @@ const { createRenderer, products, catalog } = require('../scripts/build-catalog.
 const host = 'preview.zlunaprirody.cz';
 const origin = `https://${host}`;
 const renderer = createRenderer(new URL(origin));
-const original = products.find(product => product.id === 'levandulova-mast');
-const path = 'levandulova-mast/state.json';
+const productById = new Map(products.map(product => [product.id, product]));
+const productOptions = products.map(({ id, name }) => ({ id, name }));
+const pilotProductId = 'levandulova-mast';
+const statePath = `${pilotProductId}/state.json`;
 const cookieName = '__Host-zlp-pilot';
 const sessionSeconds = 8 * 60 * 60;
 const revisionPattern = /^[a-f0-9-]{36}$/;
@@ -57,32 +59,63 @@ async function readState(storeId, forWrite = false) {
   let etag = null;
   if (forWrite) {
     try {
-      etag = (await head(path, { storeId })).etag;
+      etag = (await head(statePath, { storeId })).etag;
     } catch (failure) {
       if (!(failure instanceof BlobNotFoundError)) throw failure;
     }
   }
-  const blob = await get(path, { access: 'private', storeId, useCache: false });
+  const blob = await get(statePath, { access: 'private', storeId, useCache: false });
   if (forWrite && Boolean(blob) !== Boolean(etag)) throw new BlobPreconditionFailedError();
-  if (!blob) return { state: {}, etag: null };
+  if (!blob) return { states: {}, etag: null };
   if (blob.statusCode !== 200) throw new Error('Unexpected Blob response');
-  return { state: await new Response(blob.stream).json(), etag };
+  const stored = await new Response(blob.stream).json();
+  // The original pilot stored one product directly at this same pathname.
+  return { states: stored.products ?? { [pilotProductId]: stored }, etag };
 }
 
-async function saveState(storeId, state, etag) {
-  await put(path, JSON.stringify(state), {
+function photoPath(productId, photo) {
+  return `catalog-photos/${productId}/${photo}.webp`;
+}
+
+function alreadyExists(error) {
+  return /blob already exists/i.test(error.message);
+}
+
+async function storePhoto(storeId, productId, bytes) {
+  const photo = createHash('sha256').update(bytes).digest('hex');
+  try {
+    await put(photoPath(productId, photo), bytes, {
+      storeId, access: 'private', contentType: 'image/webp', addRandomSuffix: false, allowOverwrite: false,
+    });
+  } catch (failure) {
+    if (!alreadyExists(failure)) throw failure;
+  }
+  return photo;
+}
+
+async function saveState(storeId, states, etag) {
+  const pilot = states[pilotProductId];
+  // Keep the existing draft, live and previous revisions, including their
+  // URLs, while moving their inline images out of the frequently read state.
+  for (const record of [pilot?.draft, pilot?.live, pilot?.previous]) {
+    if (!record?.image) continue;
+    record.photo = await storePhoto(storeId, pilotProductId, Buffer.from(record.image, 'base64'));
+    delete record.image;
+  }
+  await put(statePath, JSON.stringify({ products: states }), {
     storeId, access: 'private', contentType: 'application/json', addRandomSuffix: false,
     allowOverwrite: Boolean(etag), ...(etag ? { ifMatch: etag } : {}),
   });
 }
 
-function productFrom(record, draft = false) {
+function productFrom(original, record, draft = false) {
   if (!record) return original;
-  const { id, price, description, ingredients, image, alt } = record;
-  const photos = image ? [{
-    src: draft ? `/api/pilot?view=photo&id=${encodeURIComponent(id)}` : `/pilot-media/${id}.webp`,
+  const { id, price, description, ingredients, photo, image, alt } = record;
+  const originals = original.photos || [];
+  const photos = photo || image ? [{
+    src: draft ? `/api/pilot?view=photo&product=${original.id}&id=${id}` : `/pilot-media/${id}.webp`,
     alt,
-  }, ...original.photos.slice(1)] : original.photos;
+  }, ...originals.slice(1)] : originals;
   return { ...original, price, description, ingredients, photos };
 }
 
@@ -91,36 +124,50 @@ async function normalizePhoto(encoded) {
   const bytes = Buffer.from(encoded, 'base64');
   if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
   try {
-    const result = await sharp(bytes, { limitInputPixels: 1400 * 1400 })
+    return await sharp(bytes, { limitInputPixels: 1400 * 1400 })
       .autoOrient().resize(1400, 1400, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 84 }).toBuffer();
-    return result.toString('base64');
   } catch {
     return null;
   }
 }
 
-function editorState(state) {
+function editorState(original, state) {
   const record = state.draft || state.live;
   return {
-    product: productFrom(record, Boolean(state.draft)), deposit: catalog.packagingDeposit(original),
+    products: productOptions, product: productFrom(original, record, Boolean(state.draft)),
+    deposit: catalog.packagingDeposit(original),
     draft: state.draft?.id || null, current: record?.id || null,
   };
 }
 
-function renderPublic(view, res, state, id) {
+async function sendPhoto(res, storeId, productId, record) {
+  if (record?.image) return send(res, 200, Buffer.from(record.image, 'base64'), 'image/webp');
+  if (!record?.photo || !/^[a-f0-9]{64}$/.test(record.photo)) return send(res, 404);
+  const blob = await get(photoPath(productId, record.photo), { access: 'private', storeId });
+  if (!blob || blob.statusCode !== 200) return send(res, 404);
+  return send(res, 200, Buffer.from(await new Response(blob.stream).arrayBuffer()), 'image/webp');
+}
+
+function renderPublic(view, res, storeId, states, original, id) {
   if (view === 'media') {
-    const record = [state.live, state.previous].find(version => version?.id === id);
-    if (!record?.image) return send(res, 404);
-    return send(res, 200, Buffer.from(record.image, 'base64'), 'image/webp');
+    if (!revisionPattern.test(id)) return send(res, 404);
+    for (const { id: productId } of products) {
+      const state = states[productId];
+      const record = [state?.live, state?.previous].find(version => version?.id === id);
+      if (record) return sendPhoto(res, storeId, productId, record);
+    }
+    return send(res, 404);
   }
-  const product = productFrom(state.live);
-  const list = products.map(item => item.id === original.id ? product : item);
+  if (view === 'product') {
+    if (!original?.published) return send(res, 404);
+    return send(res, 200, renderer.product(productFrom(original, states[original.id]?.live)), 'text/html; charset=utf-8');
+  }
+  const list = products.map(item => productFrom(item, states[item.id]?.live));
   if (view === 'products') {
     return send(res, 200, `'use strict';\nconst products = ${JSON.stringify(list)};\n`, 'text/javascript; charset=utf-8');
   }
-  const html = view === 'home' ? renderer.home(list.filter(item => item.published)) : renderer.product(product);
-  return send(res, 200, html, 'text/html; charset=utf-8');
+  return send(res, 200, renderer.home(list.filter(item => item.published)), 'text/html; charset=utf-8');
 }
 
 module.exports = async function handler(req, res) {
@@ -132,14 +179,15 @@ module.exports = async function handler(req, res) {
   const { searchParams } = new URL(req.url, origin);
   const view = searchParams.get('view');
   const id = searchParams.get('id');
+  const original = productById.get(searchParams.get('product') ?? pilotProductId);
   const storeId = process.env.ZLP_PILOT_STORE_ID;
   const key = process.env.ZLP_PILOT_ADMIN_HASH;
   const ready = Boolean(storeId) && /^[a-f0-9]{64}$/.test(key);
 
   try {
     if (req.method === 'GET' && ['home', 'product', 'products', 'media'].includes(view)) {
-      const { state } = ready ? await readState(storeId) : { state: {} };
-      return renderPublic(view, res, state, id);
+      const { states } = ready ? await readState(storeId) : { states: {} };
+      return await renderPublic(view, res, storeId, states, original, id);
     }
     if (req.method === 'GET' && view === 'admin') {
       res.setHeader('X-Robots-Tag', 'noindex');
@@ -164,11 +212,13 @@ module.exports = async function handler(req, res) {
       setSession(res);
       return json(res, 200, {});
     }
-    const { state, etag } = await readState(storeId, req.method === 'POST');
-    if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(state));
+    if (!original) return error(res, 404, 'Produkt nebyl nalezen.');
+    const { states, etag } = await readState(storeId, req.method === 'POST');
+    const state = states[original.id] ?? {};
+    if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(original, state));
     if (req.method === 'GET' && view === 'photo') {
-      if (!revisionPattern.test(id) || state.draft?.id !== id || !state.draft.image) return send(res, 404);
-      return send(res, 200, Buffer.from(state.draft.image, 'base64'), 'image/webp');
+      if (!revisionPattern.test(id) || state.draft?.id !== id) return send(res, 404);
+      return await sendPhoto(res, storeId, original.id, state.draft);
     }
     if (req.method === 'POST' && view === 'draft') {
       const { price, description, ingredients, image, alt, current } = body || {};
@@ -179,25 +229,27 @@ module.exports = async function handler(req, res) {
           (image !== null && (typeof alt !== 'string' || !alt.trim() || alt.length > 150))) {
         return error(res, 400, 'Zkontrolujte cenu, popis, složení a formát fotografie.');
       }
-      const photo = image === null ? null : await normalizePhoto(image);
-      if (image !== null && !photo) return error(res, 400, 'Fotografii nelze zpracovat. Vyberte jiný snímek.');
+      const bytes = image === null ? null : await normalizePhoto(image);
+      if (image !== null && !bytes) return error(res, 400, 'Fotografii nelze zpracovat. Vyberte jiný snímek.');
+      const photo = bytes ? await storePhoto(storeId, original.id, bytes) : prior?.photo || null;
       state.draft = { id: randomUUID(), price, description: description.trim(), ingredients: ingredients.trim(),
-        image: photo || prior?.image || null, alt: photo ? alt.trim() : prior?.alt || null };
-      await saveState(storeId, state, etag);
-      return json(res, 200, editorState(state));
+        photo, image: bytes ? null : prior?.image || null, alt: bytes ? alt.trim() : prior?.alt || null };
+      states[original.id] = state;
+      await saveState(storeId, states, etag);
+      return json(res, 200, editorState(original, state));
     }
     if (req.method === 'POST' && view === 'publish') {
-      if (body?.id && state.live?.id === body.id && !state.draft) return json(res, 200, editorState(state));
+      if (body?.id && state.live?.id === body.id && !state.draft) return json(res, 200, editorState(original, state));
       if (!body?.id || state.draft?.id !== body.id) return error(res, 409, 'Nejdřív otevřete náhled aktuálního konceptu.');
       state.previous = state.live || null;
       state.live = state.draft;
       state.draft = null;
-      await saveState(storeId, state, etag);
-      return json(res, 200, editorState(state));
+      await saveState(storeId, states, etag);
+      return json(res, 200, editorState(original, state));
     }
     return send(res, 404);
   } catch (failure) {
-    if (failure instanceof BlobPreconditionFailedError || /blob already exists/i.test(failure.message)) {
+    if (failure instanceof BlobPreconditionFailedError || alreadyExists(failure)) {
       return error(res, 409, 'Katalog se mezitím změnil. Obnovte stránku.');
     }
     console.error('Pilot catalog:', failure.name);

@@ -2,15 +2,22 @@ const field = id => document.getElementById(id);
 const login = field('login');
 const edit = field('edit');
 const logout = field('logout');
+const picker = field('product');
+const pickerGroup = field('product-picker');
 const preview = field('preview');
 const publish = field('publish');
 const status = field('status');
 const publishFields = ['price', 'description', 'ingredients'];
 const currency = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
 let revision;
+let activeProduct;
+let dirty = false;
+let pending = false;
 
-async function request(view, body) {
-  const res = await fetch(`/api/pilot?view=${view}`, body ? {
+async function request(view, body, product = activeProduct) {
+  const params = new URLSearchParams({ view });
+  if (product) params.set('product', product);
+  const res = await fetch(`/api/pilot?${params}`, body ? {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   } : {});
   const data = await res.json();
@@ -20,19 +27,35 @@ async function request(view, body) {
 
 function showLogin() {
   login.hidden = false;
-  edit.hidden = logout.hidden = preview.hidden = true;
+  edit.hidden = logout.hidden = preview.hidden = pickerGroup.hidden = true;
+  field('preview-photo').removeAttribute('src');
 }
 
-function render({ product, deposit, draft, current }) {
+function render({ products, product, deposit, draft, current }) {
+  activeProduct = product.id;
   revision = current;
+  dirty = false;
+  if (!picker.options.length) {
+    picker.replaceChildren(...products.map(({ id, name }) => new Option(name, id)));
+  }
+  picker.value = activeProduct;
   login.hidden = true;
-  edit.hidden = logout.hidden = false;
+  edit.hidden = logout.hidden = pickerGroup.hidden = false;
   for (const key of publishFields) field(key).value = product[key];
   field('photo').value = '';
   syncPhotoDescription();
   preview.hidden = !draft;
-  field('preview-photo').src = product.photos[0].src;
-  field('preview-photo').alt = product.photos[0].alt;
+  const photo = product.photos?.[0];
+  const image = field('preview-photo');
+  image.hidden = !photo;
+  if (photo) {
+    image.src = photo.src;
+    image.alt = photo.alt;
+  } else {
+    image.removeAttribute('src');
+    image.alt = '';
+  }
+  field('preview-name').textContent = product.name;
   field('preview-price').textContent = `${currency.format(product.price)} + ${currency.format(deposit)} záloha za obal`;
   field('preview-description').textContent = product.description;
   field('preview-ingredients').textContent = product.ingredients;
@@ -56,13 +79,18 @@ async function load() {
 }
 
 async function action(control, callback) {
-  control.disabled = true;
+  if (pending) return;
+  pending = true;
+  const controls = [control, picker, logout];
+  controls.forEach(item => { item.disabled = true; });
   try {
     await callback();
   } catch (error) {
+    if (error.status === 401 && control !== login.querySelector('button')) showLogin();
     status.textContent = error.message;
   } finally {
-    control.disabled = false;
+    controls.forEach(item => { item.disabled = false; });
+    pending = false;
   }
 }
 
@@ -113,14 +141,27 @@ login.addEventListener('submit', event => {
 logout.addEventListener('click', () => action(logout, async () => {
   await request('logout', {});
   edit.reset();
-  field('preview-photo').removeAttribute('src');
   revision = undefined;
+  activeProduct = undefined;
+  dirty = false;
   showLogin();
   status.textContent = 'Odhlášeno.';
 }));
 
+picker.addEventListener('change', () => {
+  const selected = picker.value;
+  if (selected === activeProduct) return;
+  picker.value = activeProduct;
+  if (dirty && !window.confirm('Přepnout na jiný produkt a zahodit neuložené úpravy formuláře?')) return;
+  action(picker, async () => {
+    const next = await request('state', undefined, selected);
+    render(next);
+    status.textContent = '';
+  });
+});
+
 field('photo').addEventListener('change', syncPhotoDescription);
-edit.addEventListener('input', () => { preview.hidden = true; status.textContent = ''; });
+edit.addEventListener('input', () => { dirty = true; preview.hidden = true; status.textContent = ''; });
 edit.addEventListener('submit', event => {
   event.preventDefault();
   const values = {

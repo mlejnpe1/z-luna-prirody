@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Správa produktu | Z lůna přírody</title>
+  <title>Správa produktů | Z lůna přírody</title>
   <link rel="stylesheet" href="/pilot-admin.css">
   <script src="/pilot-admin.js" type="module"></script>
 </head>
@@ -13,12 +13,16 @@
       <a href="/">Z lůna přírody</a>
       <button id="logout" type="button" class="secondary" hidden>Odhlásit se</button>
     </header>
-    <h1>Levandulová mast</h1>
+    <h1>Správa produktů</h1>
     <form id="login" hidden>
       <label for="password">Heslo administrace</label>
       <input id="password" type="password" autocomplete="current-password" required maxlength="128">
       <button>Přihlásit se</button>
     </form>
+    <div id="product-picker" hidden>
+      <label for="product">Produkt</label>
+      <select id="product"></select>
+    </div>
     <form id="edit" hidden>
       <label for="price">Cena v Kč</label>
       <input id="price" type="number" inputmode="numeric" min="1" max="10000" required>
@@ -36,7 +40,7 @@
     <section id="preview" hidden>
       <h2>Soukromý náhled</h2>
       <img id="preview-photo" alt="">
-      <h3>Levandulová mast</h3>
+      <h3 id="preview-name"></h3>
       <p id="preview-price"></p>
       <p id="preview-description"></p>
       <h3>Složení</h3>
