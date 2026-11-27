@@ -2,7 +2,7 @@
 const { createHash, createHmac, randomUUID, timingSafeEqual } = require('node:crypto');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { get, put, BlobPreconditionFailedError } = require('@vercel/blob');
+const { get, head, put, BlobNotFoundError, BlobPreconditionFailedError } = require('@vercel/blob');
 const sharp = require('sharp');
 const { createRenderer, products, catalog } = require('../scripts/build-catalog.cjs');
 
@@ -51,11 +51,22 @@ function setSession(res, key) {
   res.setHeader('Set-Cookie', `${cookieName}=${value}; Max-Age=${key ? sessionSeconds : 0}; Path=/; Secure; HttpOnly; SameSite=Strict`);
 }
 
-async function readState(storeId) {
+async function readState(storeId, forWrite = false) {
+  // The storage API provides the write ETag. A cache-bypassing download
+  // can omit it, so take the write precondition before reading the state.
+  let etag = null;
+  if (forWrite) {
+    try {
+      etag = (await head(path, { storeId })).etag;
+    } catch (failure) {
+      if (!(failure instanceof BlobNotFoundError)) throw failure;
+    }
+  }
   const blob = await get(path, { access: 'private', storeId, useCache: false });
+  if (forWrite && Boolean(blob) !== Boolean(etag)) throw new BlobPreconditionFailedError();
   if (!blob) return { state: {}, etag: null };
   if (blob.statusCode !== 200) throw new Error('Unexpected Blob response');
-  return { state: await new Response(blob.stream).json(), etag: blob.blob.etag };
+  return { state: await new Response(blob.stream).json(), etag };
 }
 
 async function saveState(storeId, state, etag) {
@@ -153,7 +164,7 @@ module.exports = async function handler(req, res) {
       setSession(res);
       return json(res, 200, {});
     }
-    const { state, etag } = await readState(storeId);
+    const { state, etag } = await readState(storeId, req.method === 'POST');
     if (req.method === 'GET' && view === 'state') return json(res, 200, editorState(state));
     if (req.method === 'GET' && view === 'photo') {
       if (!revisionPattern.test(id) || state.draft?.id !== id || !state.draft.image) return send(res, 404);
