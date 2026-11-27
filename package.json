@@ -1,0 +1,11 @@
+{
+  "name": "z-luna-prirody",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": "24.x" },
+  "dependencies": {
+    "@vercel/blob": "2.9.0",
+    "heic-to": "1.6.7",
+    "sharp": "0.34.5"
+  }
+}

@@ -27,7 +27,7 @@ Konfigurace je ve vercel.json. V případě ručně nastavených hodnot na Verce
 je aktualizujte nebo vypněte jejich přepsání a použijte vercel.json.
 Do propojené větve main se posílají jen změny určené ke zveřejnění.
 Alternativně lze z kořene projektu spustit npx.cmd vercel --prod.
-Projekt nepotřebuje npm závislosti ani databázi; používá vestavěné Node API.
+Pilot na větvi preview používá Node.js 24, npm ci a soukromé Vercel Blob.
 
 LOKÁLNÍ NÁHLED
   node scripts/preview.cjs            dočasná úvodní stránka
@@ -69,8 +69,14 @@ Košík i zpráva uvádějí ceny výrobků, vratné zálohy a celkovou částku
 Kontaktní údaje se při zavření dialogu vymažou.
 Katalog i produktové informace fungují bez JavaScriptu. Interaktivní galerie,
 košík a formulář vyžadují JavaScript. Odkazy na další fotky fungují i bez něj.
-Není implementované přihlášení, nahrávání fotografií ani administrace.
-Produkty se upravují v products.js a zveřejňují novým nasazením.
+Pilot správy levandulové masti je na https://preview.zlunaprirody.cz/admin.
+Umožňuje uložit cenu, popis, složení a titulní fotku do soukromého konceptu
+a po kontrole náhledu zveřejnit jednu revizi. Ostatní produkty se dál mění
+v products.js a zveřejňují novým nasazením.
+Pro pilot patří ZLP_PILOT_STORE_ID a ZLP_PILOT_ADMIN_HASH výhradně do
+prostředí Preview. Úložiště musí být privátní a připojené přes Vercel OIDC.
+ZLP_PILOT_ADMIN_HASH je SHA-256 strojově vygenerovaného dlouhého hesla,
+které se předává editorkám bezpečným kanálem.
 Fotografie autorky je v sekci O Adéle. Všech osm výrobků má titulní fotografii.
 Zkušební obrázky použité při ověřování galerie nejsou součástí katalogu.
 

@@ -1,22 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "",
+  "installCommand": "npm ci",
   "buildCommand": "node scripts/build.cjs",
   "outputDirectory": "dist",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
+  "regions": ["fra1"],
+  "functions": {
+    "api/pilot.js": {
+      "includeFiles": "{admin/pilot.html,public/index.html,public/products.js,public/site-config.js,public/catalog.js}"
     }
+  },
+  "routes": [
+    {
+      "src": "^/.*$",
+      "headers": { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" },
+      "continue": true
+    },
+    { "src": "^/admin/?$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=admin" },
+    { "src": "^/(?:index\\.html)?$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=home" },
+    { "src": "^/produkty/levandulova-mast(?:/|/index\\.html)?$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=product" },
+    { "src": "^/products\\.js$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=products" },
+    { "src": "^/pilot-media/([a-f0-9-]{36})\\.webp$", "has": [{ "type": "host", "value": "preview.zlunaprirody.cz" }], "dest": "/api/pilot?view=media&id=$1" },
+    { "handle": "filesystem" }
   ]
 }

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Správa produktu | Z lůna přírody</title>
+  <link rel="stylesheet" href="/pilot-admin.css">
+  <script src="/pilot-admin.js" type="module"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <a href="/">Z lůna přírody</a>
+      <button id="logout" type="button" class="secondary" hidden>Odhlásit se</button>
+    </header>
+    <h1>Levandulová mast</h1>
+    <form id="login" hidden>
+      <label for="password">Heslo administrace</label>
+      <input id="password" type="password" autocomplete="current-password" required maxlength="128">
+      <button>Přihlásit se</button>
+    </form>
+    <form id="edit" hidden>
+      <label for="price">Cena v Kč</label>
+      <input id="price" type="number" inputmode="numeric" min="1" max="10000" required>
+      <label for="description">Popis</label>
+      <textarea id="description" rows="3" maxlength="2000" required></textarea>
+      <label for="ingredients">Složení</label>
+      <textarea id="ingredients" rows="4" maxlength="2000" required></textarea>
+      <label for="photo">Nová titulní fotka</label>
+      <input id="photo" type="file" accept="image/*,.heic,.heif">
+      <label for="alt" id="alt-label" hidden>Krátký popis nové fotky</label>
+      <input id="alt" maxlength="150" hidden>
+      <button>Uložit koncept a zobrazit náhled</button>
+    </form>
+    <p id="status" role="status">Načítám…</p>
+    <section id="preview" hidden>
+      <h2>Soukromý náhled</h2>
+      <img id="preview-photo" alt="">
+      <h3>Levandulová mast</h3>
+      <p id="preview-price"></p>
+      <p id="preview-description"></p>
+      <h3>Složení</h3>
+      <p id="preview-ingredients"></p>
+      <button type="button" id="publish">Zveřejnit tuto verzi na preview</button>
+    </section>
+  </main>
+</body>
+</html>
